@@ -14,6 +14,7 @@ songs = {
     for song in songs
 }
 st.title('Digital Disco')
+st.markdown('### App by Team 0')
 
 song = st.selectbox(label='Song', options=list(songs.keys()))
 color = st.beta_color_picker(label='Color for Song')
