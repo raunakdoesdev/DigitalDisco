@@ -17,7 +17,7 @@ st.title('Digital Disco')
 st.markdown('### App by Team 0')
 
 song = st.selectbox(label='Song', options=list(songs.keys()))
-color = st.beta_color_picker(label='Color for Song')
+color = st.text_input(label='Color')
 
 if st.button('Submit'):
     send_request(color + song)
