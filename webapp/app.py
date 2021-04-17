@@ -8,9 +8,9 @@ def send_request(message):
     x = requests.post(url, data={'message': message})
 
 
-songs = os.listdir('../songs')
+songs = os.listdir('songs')
 songs = {
-    song.split('.')[0]: os.path.join('../songs', song)
+    song.split('.')[0]: os.path.join('songs', song)
     for song in songs
 }
 st.title('Digital Disco')
