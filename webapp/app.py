@@ -16,7 +16,7 @@ songs = {
 st.title('Digital Disco')
 
 song = st.selectbox(label='Song', options=list(songs.keys()))
-color = st.color_picker(label='Color for Song')
+color = st.beta_color_picker(label='Color for Song')
 
 if st.button('Submit'):
     send_request(color + song)
