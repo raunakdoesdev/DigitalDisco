@@ -10,7 +10,7 @@ def send_request(message):
     x = requests.post(url, data={'message': message})
 
 
-prepend = '..\\'
+prepend = '../'
 
 songs = {
     'Never Gonna Give You Up': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Never%20Gonna%20Give%20You%20Up.mp3',
@@ -26,5 +26,5 @@ if st.button('Submit'):
     send_request(color + song)
 
     st.write('### Media Player:')
-    with open('media.html', 'r') as f:
+    with open(prepend + 'webapp/media.html', 'r') as f:
         components.html(f.read().replace('SONGPATHHERE', songs[song]), height=8000)
