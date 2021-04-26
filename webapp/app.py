@@ -26,5 +26,5 @@ if st.button('Submit'):
     send_request(color + song)
 
     st.write('### Media Player:')
-    with open(prepend + 'webapp/media.html', 'r') as f:
+    with open('webapp/media.html', 'r') as f:
         components.html(f.read().replace('SONGPATHHERE', songs[song]), height=8000)
