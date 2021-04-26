@@ -1,0 +1,76 @@
+<script src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js" text="javascript"></script>
+<script src="https://www.mcorp.no/lib/mcorp-2.0.js" text="javascript"></script>
+<script src="https://www.mcorp.no/lib/mediasync.js" text="javascript"></script>
+
+<div id="demo" style="height:50px">
+    <p id='buttons'>
+        <button id='tostart'>Reset</button>
+        <button id='pause'>Pause</button>
+        <b>
+            <button id='forward'>Play</button>
+        </b>
+        <button id='skipbackward'>Skip 5 Back</button>
+        <button id='skipforward'>Skip 5 Ahead</button>
+
+    </p>
+    <p>
+        <b><span id='position'></span></b>
+    </p>
+
+</div>
+<audio controls id="player1" style="width:100%" autoplay>
+    <source src="SONGPATHHERE" type="audio/mpeg"/>
+</audio>
+
+<script type="text/javascript">
+    var m, w;
+
+    var run = function () {
+
+        // timing object
+        var to = new TIMINGSRC.TimingObject({range: [0, 100]});
+
+        var mcorp_app = MCorp.app("8711565362037307822", {anon: true});
+
+        mcorp_app.ready.then(function () {
+            to.timingsrc = mcorp_app.motions["shared"];
+        });
+
+        console.log("Hello World!", to.query())
+
+        // set up button click handlers
+        var buttonsElem = document.getElementById("buttons");
+        var self = this;
+        buttonsElem.onclick = function (e) {
+            var elem, evt = e ? e : event;
+            if (evt.srcElement) elem = evt.srcElement;
+            else if (evt.target) elem = evt.target;
+            if (elem.id === "pause") {
+                to.update({velocity: 0.0});
+            } else if (elem.id === "tostart") {
+                to.update({position: 0.0});
+            } else if (elem.id === "skipforward") {
+                to.update({position: to.query().position + 5});
+            } else if (elem.id === "skipbackward") {
+                to.update({position: to.query().position - 5});
+            } else if (elem.id === "forward") {
+                var v = to.query();
+                if (v.position === 100 && v.velocity === 0) {
+                    to.update({position: 0.0, velocity: 1.0});
+                } else to.update({velocity: 1.0});
+            } else if (elem.id === "toend") {
+                to.update({position: 100.0});
+            }
+        }
+
+        // set up refresh of timingobject position
+        to.on("timeupdate", function () {
+            document.getElementById("position").innerHTML = to.query().position.toFixed(2);
+        });
+
+        // set up video sync
+        var sync1 = MCorp.mediaSync(document.getElementById('player1'), to);
+    };
+
+    run();
+</script>

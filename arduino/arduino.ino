@@ -29,7 +29,7 @@ void setup() {
 
 void get_server_state(){
     char request_buffer[200];
-    sprintf(request_buffer, "GET /sandbox/sc/raunakc/final/comm.py HTTP/1.1\r\n");
+    sprintf(request_buffer, "GET /sandbox/sc/team00/final/comm.py HTTP/1.1\r\n");
     strcat(request_buffer, "Host: 608dev-2.net\r\n");
     strcat(request_buffer, "\r\n"); //new line from header to body
     do_http_request("608dev-2.net", request_buffer, response, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);
