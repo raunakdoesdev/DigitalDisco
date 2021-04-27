@@ -19,6 +19,8 @@ songs = {
 st.title('Digital Disco')
 st.markdown('### App by Team 0')
 
+
+room = st.selectbox(label='Room', options=['shared', 'room1'])
 song = st.selectbox(label='Song', options=list(songs.keys()))
 color = st.text_input(label='Color')
 
@@ -27,4 +29,4 @@ if st.button('Submit'):
 
     st.write('### Media Player:')
     with open('webapp/media.html', 'r') as f:
-        components.html(f.read().replace('SONGPATHHERE', songs[song]), height=8000)
+        components.html(f.read().replace('SONGPATHHERE', songs[song]).replace('MOTION_NAME_HERE', room), height=8000)

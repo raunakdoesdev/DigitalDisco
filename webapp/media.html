@@ -33,7 +33,7 @@
         var mcorp_app = MCorp.app("8711565362037307822", {anon: true});
 
         mcorp_app.ready.then(function () {
-            to.timingsrc = mcorp_app.motions["shared"];
+            to.timingsrc = mcorp_app.motions["MOTION_NAME_HERE"];
         });
 
         console.log("Hello World!", to.query())
