@@ -1,0 +1,132 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/apidoc.css?">
+
+# Deliverables: Wk 1
+
+Overall, we focused more on getting the webapp up and running this week. 
+This was motivated by for two reasons: proving that streamlit provides a good solution to our use case, and finding alternate progress in lieu of the LEDs since we did not have access to them yet.
+
+## Three-Way Synchronization
+
+As written we were required to "Using GET/POST requests, remotely control the ESP32 state from the web application directly (display a message entered from the web server on the ESP32 screen).
+
+You can see this functionality here:
+
+![](https://www.youtube.com/watch?v=sueh-2Q8Fh8)
+
+
+To implement this feature, on the dev server side we wrote a simple request handler which writes the content from an incoming post request to a file and then returns the content of that file on a get request. More complex interactions using a SQL Lite server can be implemented in the future to support more complex features. The devserver acts as a stateful middle man for the communications between the app and the arduino.
+
+```python
+def request_handler(request):
+    if request['method'] == 'POST':
+        with open('/var/jail/home/team00/final/temp.txt', 'w') as f:
+            f.write(request['form']['message'] + '\n')
+        return 'Success'
+
+    else:
+        with open('/var/jail/home/team00/final/temp.txt', 'r') as f:
+            return f.read()
+```
+
+On the web app side, we implement a single function "send_request" which sends a post request to our 6.08 dev server with a given message.
+
+```python
+def send_request(message):
+    import requests
+    url = 'http://608dev-2.net/sandbox/sc/team00/final/comm.py'
+    x = requests.post(url, data={'message': message})
+```
+
+Finally, we read this message using a GET request on the arduino side.
+
+```c
+void get_server_state(){
+    char request_buffer[200];
+    sprintf(request_buffer, "GET /sandbox/sc/team00/final/comm.py HTTP/1.1\r\n");
+    strcat(request_buffer, "Host: 608dev-2.net\r\n");
+    strcat(request_buffer, "\r\n"); //new line from header to body
+    do_http_request("608dev-2.net", request_buffer, response, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);
+}
+```
+
+## Synced Rooms
+
+As written we were required to "Build a web app where you can enter a room name to "join a room" and sync the content that each person sees in the web app." This requirement is satisfied by the deomnstration in the next section (it requires implementing both of these features, so we combined them for video recording sake).
+
+## Media Synced Web App Rooms
+
+Though it wasn't scheduled this week, we did not yet receive the LED kit, so we did this deliverable early instead so that our development timeline will not be altered.
+
+
+You can see this functionality here:
+
+![](https://www.youtube.com/watch?v=aS6W9owh_R8)
+
+This was implemented by using the javascript timingsrc mediasync library, which allows you to created a globally shared view of a specific media sample that is then synced between devices.
+
+On the webpage, we create an audio object as normal
+```html
+<audio controls id="player1" style="width:100%" autoplay>
+    <source src="SONGPATHHERE" type="audio/mpeg"/>
+```
+
+and then we additionally incorporate the mediasync api:
+
+```javascript
+// set up refresh of timingobject position
+to.on("timeupdate", function () {
+    document.getElementById("position").innerHTML = to.query().position.toFixed(2);
+});
+
+// set up video sync
+var sync1 = MCorp.mediaSync(document.getElementById('player1'), to);
+```
+
+and some additional code to get the button sync working. Then in our streamlit web app, we queried the user using a dropdown for the room name and song  name and edited the html rendered based on these inputs.
+
+In order to sync content between the different rooms, we set up each room with a room ID and used this room ID to choose which syncing object to use within the Mediasync API. 
+
+## Music Detection
+
+The requirement for this deliverable was:
+    * Recognize when music is playing on the esp32 
+With the planned demo as: 
+    * Show serial printing when music is played (naive: the first loud sound)
+
+This week, we tried a couple different techniques to try to detect the start of the music. 
+
+Using the techniques developed in class, we implemented functions on the ESP32 to correlate two signals. 
+Thus, the idea was that you would send the ESP info about how the beginning of the song should look, and then it would correlate that with some amount of current stored audio.
+However, this did not work. The correlation for empty noise was really high, such that the beginning of a song was more or less the same, or sometimes even lower. We used 50-100 samples of audio, so I don't fully understand why this is the case. 
+I would expect that the envelope of random noise should look different from the order of specific frequencies in a song. 
+
+After that attempt, we fell back on the simpler, though more naive, detection of general sound amplitude. This was implemented by looking for local max and local min in the audio, and then finding their difference (since this should be twice the amplitude of the wave at that point).
+This works very consistently, though it lacks any ability to detect what type of sound it is listening to. 
+
+```c++
+//max
+if ((readings[r_index] < readings[(r_index - 1) % CORRELATION_SIZE]) && (readings[(r_index - 2) % CORRELATION_SIZE] < readings[(r_index - 1) % CORRELATION_SIZE])) {
+  max_x = readings[(r_index - 1) % CORRELATION_SIZE];
+  if ((max_x - min_x) > 0.6) {
+    Serial.printf("scaled reading: %f, %f\n", max_x - min_x);
+  }
+}
+//min
+if ((readings[r_index] > readings[(r_index - 1) % CORRELATION_SIZE]) && (readings[(r_index - 2) % CORRELATION_SIZE] > readings[(r_index - 1) % CORRELATION_SIZE])) {
+  min_x = readings[(r_index - 1) % CORRELATION_SIZE];
+  if ((max_x - min_x) > 0.6) {
+    Serial.printf("scaled reading: %f, %f\n", max_x - min_x);
+  }
+}
+```
+As a proof of concept, it listens whenever the button is held down. One of our goals for the upcoming week will be to combine this with the HTTP GET cycle. 
+Thus, the ESP will only look for music audio in the short interval after receiving an update from the server that someone is trying to play a song.  
+The extra print statements in the video are from the button bouncing and putting itself back into the listening state. 
+
+Here is the demo:
+
+![](https://youtu.be/nwY2ylStbko)
+
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
