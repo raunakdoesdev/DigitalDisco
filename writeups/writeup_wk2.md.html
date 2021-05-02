@@ -1,0 +1,52 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/apidoc.css?">
+
+# Deliverables: Wk 2
+
+
+## Beat Detection
+
+You can see this functionality here, with the original audio overlayed with the computer-generated beat track:
+
+![Stayin' Alive](demo_songs/stayin_alive_superimposed.mp3)
+![Never Gonna Give You Up](demo_songs/nggyu_superimposed.mp3)
+![Stitches](demo_songs/stitches_superimposed.mp3)
+![Piano Man](demo_songs/pianoman_superimposed.mp3)
+
+The basic process for this beat detection algorithm is as follows: 
+- compute the STFT of the song using scipy
+- compute the spectral difference AKA 
+- find peaks in the spectral difference and return the corresponding times
+
+The spectral difference is a function defined as follows: 
+$$SD(n) = \sum_{k=0}^{N-1} \{H(|X_n[k]| - |X_{n-1}[k]|)\}^2$$
+where: $H(x) = \frac{x+|x|}{2}$. 
+
+This spectral difference function, as taught in 6.003, is a a measure of how much the frequency content is changing between frames. 
+When there is a beat or a note change, we expect there to be a significant change in the frequency content. 
+This is especially true for percussive attacks because they have frequency content in a very wide band of frequencies right at the onset of the note, which then drops off quickly. 
+
+The function H(x) serves to focus on these onsets because it is positive when $X_n[k] >X_{n-1}[k]$ and 0 otherwise. Therefore, it selects for times where there is a sharp increase in the total amount spectral content. 
+
+The peak finding algorithm works by iteratively selecting the maximum spectral difference sample above a certain threshold and then zeroing out its neighbors (to limit how close together the beats can fall). 
+```python
+def find_peaks(x, t, threshold, min_spacing):
+    x = x.copy()
+    output = []
+    cand = max(x)
+    i_find = {elt: i for i, elt in enumerate(x)}
+    while cand > threshold:
+        i = i_find[cand]
+        output.append(t[i])
+        for j in range(i-min_spacing+1, i+min_spacing):
+            if 0 <= j < len(x):
+                x[j] = 0
+        cand = max(x)
+    return sorted(output)
+```
+Those measures for minimum spacing and threshold have to be experimentally derived, but it appears that they can be tuned so that one set of values works across a wide range of songs. 
+In this case, I designed that beats should not be any closer than about 250 bpm, and the threshold was determined from plots of the spectral difference. 
+
+Finally, to create the demos, I synthesized a beat track using the provided times and an wav file of a drum hit (there is a drum hit at time 0 so that it will sync with the original song). 
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>

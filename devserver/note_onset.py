@@ -6,18 +6,6 @@ import time
 def H(x):
     return (x+abs(x))/2
 
-# def spectral_difference(X):
-#     #stft shape: (freqs, times/windows): X[k,n]
-#     T = X.shape[1] #number of windows
-#     N = X.shape[0] #number of freqs
-#     SD = np.zeros(T) #one for each window
-#     for n in range(T):
-#         if n == 0:
-#             SD[n] = sum((H(abs(X[k,n])))**2 for k in range(N))
-#         else: 
-#             SD[n] = sum(   (H( abs(X[k,n])-abs(X[k,n-1])  ))**2 for k in range(N)    )
-#     return SD
-
 def spectral_difference(X):
     #stft shape: (freqs, times/windows): X[k,n]
     T = X.shape[1] #number of windows
