@@ -6,16 +6,29 @@ import time
 def H(x):
     return (x+abs(x))/2
 
+# def spectral_difference(X):
+#     #stft shape: (freqs, times/windows): X[k,n]
+#     T = X.shape[1] #number of windows
+#     N = X.shape[0] #number of freqs
+#     SD = np.zeros(T) #one for each window
+#     for n in range(T):
+#         if n == 0:
+#             SD[n] = sum((H(abs(X[k,n])))**2 for k in range(N))
+#         else: 
+#             SD[n] = sum(   (H( abs(X[k,n])-abs(X[k,n-1])  ))**2 for k in range(N)    )
+#     return SD
+
 def spectral_difference(X):
     #stft shape: (freqs, times/windows): X[k,n]
     T = X.shape[1] #number of windows
     N = X.shape[0] #number of freqs
     SD = np.zeros(T) #one for each window
+    abs_x = abs(X)
     for n in range(T):
         if n == 0:
-            SD[n] = sum((H(abs(X[k,n])))**2 for k in range(N))
+            SD[n] = sum((H(abs_x[:,n]))**2 )
         else: 
-            SD[n] = sum(   (H( abs(X[k,n])-abs(X[k,n-1])  ))**2 for k in range(N)    )
+            SD[n] = np.sum(   (H( abs_x[:,n]-abs_x[:,n-1]) )**2)
     return SD
 
 def find_peaks(x, t, threshold, min_spacing):
