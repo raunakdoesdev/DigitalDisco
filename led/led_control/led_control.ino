@@ -12,6 +12,7 @@ const uint8_t IDLE = 0;
 const uint8_t BLUE = 1;
 const uint8_t GREEN = 2;
 const uint8_t RETAIN = 3;
+const uint8_t RED = 4;
 uint8_t state;
 int notes;
 
@@ -70,12 +71,52 @@ void light_show_2() {
   }
 }
 
+void light_show_3() {
+  FastLED.show();
+  switch (state) {
+    case IDLE:
+      state = BLUE;
+      switch_time = millis();
+      break;
+    case BLUE:
+      while (millis() - switch_time < 300) {
+        for (int dot = 0; dot < 10; dot++) {
+          leds[dot] = CRGB::Blue;
+        }
+        FastLED.show();
+      }
+      state = GREEN;
+      switch_time = millis();
+      break;
+    case GREEN:
+      while (millis() - switch_time < 300) {
+        for (int dot = 0; dot < 10; dot++) {
+          leds[dot] = CRGB::Red;
+        }
+        FastLED.show();
+      }
+      switch_time = millis();
+      state = RED;
+      break;
+    case RED:
+      while (millis() - switch_time < 300) {
+        for (int dot = 0; dot < 10; dot++) {
+          leds[dot] = CRGB::Green;
+        }
+        FastLED.show();
+      }
+      switch_time = millis();
+      state = BLUE;
+      break;
+  }
+}
+
 float times[] = {0.0 * 1000, 2.0 * 1000, 4.0 * 1000, 8.0 * 1000, 10.0 * 1000, 14.0 * 1000, 18.0 * 1000}; // integrate with alyssa's work (i.e. somehow receive times[])
 float start;
 float t;
 
 uint8_t next = IDLE;
-void light_show_3() {
+void light_show_4() {
   FastLED.show();
   switch (state) {
     case IDLE:
@@ -92,6 +133,13 @@ void light_show_3() {
     case GREEN:
       for (int dot = 0; dot < 10; dot++) {
         leds[dot] = CRGB::Red;
+      }
+      state = RETAIN;
+      next = RED;
+      break;
+    case RED:
+      for (int dot = 0; dot < 10; dot++) {
+        leds[dot] = CRGB::Green;
       }
       state = RETAIN;
       next = BLUE;
@@ -116,14 +164,18 @@ void light_show_3() {
 
 void loop() {
   // basic light show #1: "chase" colors
-  //  while (millis() - show_time < 500) { // play show for 10 seconds
-  //    light_show_1();
-  //  }
+  while (millis() - show_time < 10000) { // play show for 10 seconds
+    light_show_1();
+  }
   //   basic light show #2: alternate colors
-  //  show_time = millis();
-  //  while (millis() - show_time < 5000) { // play show for 10 seconds
-  //    light_show_2();
-  //  }
+  show_time = millis();
+  while (millis() - show_time < 10000) { // play show for 10 seconds
+    light_show_2();
+  }
   // light show #3: with time integration
-  light_show_3();
+  show_time = millis();
+  while (millis() - show_time < 10000) { // play show for 10 seconds
+    light_show_3();
+  }
+//  light_show_4();
 }
