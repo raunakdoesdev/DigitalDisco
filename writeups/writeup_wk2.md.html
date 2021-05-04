@@ -48,5 +48,27 @@ In this case, I designed that beats should not be any closer than about 250 bpm,
 
 Finally, to create the demos, I synthesized a beat track using the provided times and an wav file of a drum hit (there is a drum hit at time 0 so that it will sync with the original song). 
 
+
+## LEDs Control
+[ Sunmee put video of the three patterns here]
+- Description of wiring
+- Description of pattern
+
+## Light Show with Integrated Time Data
+A demo is here, where the LED changes color at the times in which musical notes change:
+![](https://youtu.be/xGVIh3mCBFg)
+
+To implement this, we essentially created a pattern (as in above LEDs Control section) where the notes switch time according to a given array of numbers.
+These numbers represent times at which the music changes note. In this show, we manually created a toy array (see time changes printed on the Serial on the video):
+~~~~~~~~~~~~~~~~~~
+float times[] = {0.0 * 1000, 2.0 * 1000, 4.0 * 1000, 8.0 * 1000, 10.0 * 1000, 14.0 * 1000, 18.0 * 1000}; 
+~~~~~~~~~~~~~~~~~~
+In the context of the project, times[] would be note times from the current song playing as queried on the server.
+
+Again, a light show relies on a state machine (instead of blocking code). In this specific light show, at each musical note the LED changes color, from green to blue. Of course there can be variations of this light show, where the colors change every other note, or the duration/rhythm of the notes dictate the next color.
+We implemented the state machine therefore with a state for BLUE, state for GREEN, and a state for RETAIN (retain LED color for duration of note without switching). 
+
+
+
 <style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
 <!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
