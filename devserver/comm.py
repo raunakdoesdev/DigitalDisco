@@ -8,7 +8,7 @@ def request_handler(request):
 
     else:
         with open('/var/jail/home/team00/final/temp.txt', 'r') as f:
-            songname = '/var/jail/home/team00/final/' + f.read().split(None, 1)[1] + '.wav'
+            songname = '/var/jail/home/team00/final/' + f.read().split(None, 1)[1].replace(" ", "") + '.wav'
             times = beats(songname)
             #format: len(times), times[0], times[1], ... times[n-1], (note: NO trailing comma)
             n = len(times)
