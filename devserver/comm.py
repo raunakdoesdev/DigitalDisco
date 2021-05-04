@@ -174,6 +174,12 @@ def request_handler(request):
 
     else:
         with open('/var/jail/home/team00/final/temp.txt', 'r') as f:
-            songname = '/var/jail/home/team00/final/' + f.read().split(None, 1)[1].replace(" ", "").replace("\n","") + '.txt'
+            s = f.read()
+            if s == '0\n':
+                return '0'
+            songname = '/var/jail/home/team00/final/' + s.split(None, 1)[1].replace(" ", "").replace("\n","") + '.txt'
             with open(songname, 'r') as f2:
-                return f2.read().replace("\n","")
+                out = f2.read().replace("\n","")
+        with open('/var/jail/home/team00/final/temp.txt', 'w') as f:
+            f.write('0\n')
+        return out

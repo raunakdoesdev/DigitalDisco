@@ -14,7 +14,7 @@ You can see this functionality here, with the original audio overlayed with the 
 
 The basic process for this beat detection algorithm is as follows: 
 - compute the STFT of the song using scipy
-- compute the spectral difference AKA 
+- compute the spectral difference 
 - find peaks in the spectral difference and return the corresponding times
 
 The spectral difference is a function defined as follows: 
@@ -67,6 +67,17 @@ In the context of the project, times[] would be note times from the current song
 
 Again, a light show relies on a state machine (instead of blocking code). In this specific light show, at each musical note the LED changes color, from green to blue. Of course there can be variations of this light show, where the colors change every other note, or the duration/rhythm of the notes dictate the next color.
 We implemented the state machine therefore with a state for BLUE, state for GREEN, and a state for RETAIN (retain LED color for duration of note without switching). 
+
+
+## Integrated Demo 
+
+Server-side:
+
+For this week, we put pre-processed times for our sample songs onto the server as txt files. 
+This was mostly because when I put the signal processing code on the server, it through errors at me that numpy was trying to use too much memory. Something to deal with next <week class=""></week> 
+When queried by the ESP, it returns a string of the times corresponding to that song, if and only if the song has just been selected in the webapp. 
+There is no support for pausing yet. It's just based on the user hitting submit. 
+
 
 
 
