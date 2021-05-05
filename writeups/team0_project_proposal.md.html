@@ -66,16 +66,15 @@ n/a
 | convert to ESP-readable format (for music after first loud enough part to trigger ESP32) | “Play” a lightshow on the ESP32, reading from the designed format. |
 | Create integrated prototype of web app song chooser, beat processing, and associated lights. | Demonstrate that a user can select a song in the web app, the pre-processed light show information is sent to the ESP32, and the lights are played. Does not demand good audio-light synchronization. |
 | **Week 3**                                                   |                                                              |
-| Extract dominant frequency content of each window (window size associated with beat?) and assign to color spectrum. | Synthesize audio of dominant frequencies and play, to verify accuracy. Use matplotlib + numpy to graph the resulting color arrays across the song. |
-| Allow songs to be selected from the web app, and designate a specific color for each song. | Show that a user can choose a song on the web app from a preset list of music, and can pick what color they would like to assign it |
-| Songs can be added or removed from the queue on the web app, and will be played in order. | Add and remove songs to queue, demonstrate that the first song in queue will be played |
-| Test audio syncing techniques (do we need the mic set up from wk 1? Does it work well enough? Do we need to explore other methods?) | Demonstrate the timing differences of accurate vs inaccurate syncs. Show data to determine the best method. |
+| Extract dominant frequency content of each beat and assign to color spectrum. | Synthesize audio of dominant frequency/ies and play, to verify accuracy. Use matplotlib + numpy to graph the resulting color arrays across the song. |
+| Enable pausing on the web application to sync with the ESP32 | Play audio on the web app, the esp32 lights should be running. Press pause and the lights + music should stop. Press play and they should resume again (still synced with the music).|
+| Integrate frequency data into LED patterns. | Display that, given data structures for the frequency values in a song, the LED can perform a light show with adaptive changes in brightness and/or hue.|
+| Integrate light show with beat data on the server. | Play a song on the webapp and show light show playing along with the song. Play another song and see that the light show is different and also plays along with that song.|
 | Create integrated prototype which supports multiple users.   | Show that a room of users can add (pre-processed) songs to the queue. Then, the appropriate light information is sent to all of their respective ESP32s, and plays, synchronized with their local audio. |
 | **Week 4**                                                   |                                                              |
 | Integrate audio processing with the queue                    | Demonstrate that audio files are processed as soon as they are added to the queue |
-| Add YouTube search integration, so that songs can be added to the queue on demand from a (nearly) limitless supply | Demonstrate that the user can search Youtube, choose an appropriate song, and successfully add it to the queue |
-| User inputs room code and controls LED brightness from ESP   | Demonstrate that the user can change the brightness using buttons on the ESP and select a room code. |
-| Create functions for multicolor visualizations with hue gradations between them. | Preprogram multiple colors on the ESP32 and display them. Then transition/fade to another set of color. |
+| Songs can be added or removed from the queue on the web app, and will be played in order. | Add and remove songs to queue, demonstrate that the first song in queue will be played |
+| Use unique user_IDs to allow the proper room and song to be provided to the ESP  | Demonstrate that the user can change rooms and the ESP will correctly receive the song being played in this room. |
 | Integrate complete product, with ability to choose between beat and frequency mode, and join different rooms with other users. | Show that users can join a room, choose the desired light mode, and pick songs from Youtube to add to the queue, where the audio will be processed. Then, songs will play from the queue, sending the light show information to the users ESPs and syncing locally. |
 
 

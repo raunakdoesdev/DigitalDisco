@@ -70,6 +70,10 @@ Again, a light show relies on a state machine (instead of blocking code). In thi
 We implemented the state machine therefore with a state for BLUE, state for GREEN, and a state for RETAIN (retain LED color for duration of note without switching). 
 
 
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
+
 ## Integrated Demo 
 
 Server-side:
@@ -78,9 +82,3 @@ For this week, we put pre-processed times for our sample songs onto the server a
 This was mostly because when I put the signal processing code on the server, it through errors at me that numpy was trying to use too much memory. Something to deal with next <week class=""></week> 
 When queried by the ESP, it returns a string of the times corresponding to that song, if and only if the song has just been selected in the webapp. 
 There is no support for pausing yet. It's just based on the user hitting submit. 
-
-
-
-
-<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
-<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
