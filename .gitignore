@@ -164,8 +164,3 @@ dmypy.json
 *.out
 *.app
 
-.idea/6.08-Final-Project.iml
-.idea/deployment.xml
-.idea/jsLibraryMappings.xml
-.idea/vcs.xml
-.idea/workspace.xml
