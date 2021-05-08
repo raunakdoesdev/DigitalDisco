@@ -1,0 +1,83 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"> <link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/journal.css?">
+
+**Digital Disco Project Proposal**
+
+The pandemic has put a pause on parties. Zoom parties can fill part of this need, but are lacking in atmosphere and experience. At a real party, you would blast pumped up music in a matching energetic environment, but this isn’t the case online. We aim to solve this pressing problem with our project, “Digital Disco.”
+
+The Digital Disco is a smart lighting system that you can easily install in your room to take your virtual parties to the next level. Paired with our handy web application, your lights will auto-magically sync to the music you play on your computer speakers, which in turn will be synced with the music your friends play. 
+
+This syncing can take on different user defined forms (toggled via buttons on the user’s ESP32 light controller), including based on dominant frequency or by syncing to the beats. When there is no audio playing, the ESP32 will consistently query a web server to gather information pertaining to the lighting sequence it should play when the music starts.
+
+# Intended functionality
+
+## Description
+
+On the web app, users will be able to join or create rooms. In the room, users may add songs to a queue. The server will process the audio files from songs on the queue and generate a light-flashing sequence based on the characteristics of the song. When a song moves to the top of the queue and the processing has been completed, the ESP32 and server will communicate to start playing the audio with the light sequence.
+
+## System block diagram
+
+![Figure [1]: System block diagram](system_block_diagram.png)
+
+## State machine
+
+![Figure [2]: State machine diagram](state_machine.png)
+
+# Technical challenges
+
+One technical challenge that may be a recurring theme is the question: how does one sync multiple pieces of media across different devices? We are attempting to begin solving the lights-audio issue by picking up the music in a microphone on the ESP. This way, it is synced to the user’s local audio, and not *also* dependent on latency between the user’s computer and the central server. However, our original design for this recognition is not very robust, in part because music varies widely, and we would expect that having a more definitive recognition system would take a lot more sampling time, thus derailing the synchronization effort. I think the emphasis on this system has to be precision in time in order to produce the desired effect on the user, though various testing to determine the tradeoffs must be done. 
+On the larger scale, there is also the question of synchronizing the whole system between different users in the same “listening room.” This requires less precision, however, the better it can be, the better the user experience. 
+
+Other technical challenges are aspects which fall outside the direct content of this course, such as the signal processing. 6.003 gives a good foundation to work from, but its focus is often more theoretical and less on applications/trouble-shooting so there will definitely be lots to learn here. 
+
+Additionally, another challenge will be the ability to scale so that the server can correctly handle multiple rooms at once, all with the potential to hold multiple users. How will this data be organized and structured? How can the server do the signal processing it needs to in an efficient way so that it does not block calls? What processes for different rooms need to happen in parallel and how can this be achieved?
+
+# Work division
+
+When we started fleshing out the idea for this project, we tried to consider a work division that would play to people’s strengths. For example, Raunak’s main task will be handling the web app, since he has prior experience with this. Alyssa’s main focus will be on the signal processing, since she is taking 6.003 this semester. Sunmee and Karen will focus on the ESP-side work, including getting the LEDs functioning, and integration of the system as a whole. 
+We tried to portion out the milestones with this in mind, giving everyone something to do each week within their wheelhouse. 
+
+# Parts list 
+
+| Part Name/Description | Price | Item Number | Vendor URL |
+|-------|-------|-------|-----|
+| Arduino Controllable LED Strip | $10.88 | BTF-LIGHTING WS2812B RGB 5050SMD Individual Addressable 3.3FT 60(2x30)Pixels/m | [Amazon.com: BTF-LIGHTING WS2812B RGB 5050SMD Individual Addressable 16.4FT 60Pixels/m 300Pixels Flexible Black PCB Full Color LED Pixel Strip Dream Color IP30 Non-Waterproof Making LED Screen LED Wall Only DC5V: Home Improvement](https://www.amazon.com/dp/B01CDTED80/ref=as_li_ss_tl?pd_rd_i=B01CDTEJBG&pd_rd_w=PdPV2&pf_rd_p=45a72588-80f7-4414-9851-786f6c16d42b&pd_rd_wg=GEH20&pf_rd_r=BHD9QXXGHPXF3KXP5P0R&pd_rd_r=5730dbe5-46bd-4b1e-8a47-9450369807be&spLa=ZW5jcnlwdGVkUXVhbGlmaWVyPUFKT0s1UVpGRURGM1kmZW5jcnlwdGVkSWQ9QTA2MzYxNjAxVkdYMDFTUVVOVjM5JmVuY3J5cHRlZEFkSWQ9QTAxMzAyMTYxVlAzQjBYR1FZTVJDJndpZGdldE5hbWU9c3BfZGV0YWlsJmFjdGlvbj1jbGlja1JlZGlyZWN0JmRvTm90TG9nQ2xpY2s9dHJ1ZQ&linkCode=sl1&tag=howto045-20&linkId=82a9d1c9949062ec0c731ab510fb3299&language=en_US&th=1) |
+| 330 Ohm Resistor | N/A (should be available in room of requirement) | N/A | N/A (should be available in room of requirement) |
+| 3 pin Connector | N/A (should be available in room of requirement) | N/A | N/A (should be available in room of requirement) |
+
+Total Price: = (10.88) x 4 = $43.52
+
+# On campus resources
+
+n/a
+
+# Milestone and demo tables
+
+| Milestone                                                    | Demo                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| **Week 1**                                                   |                                                              |
+| Recognize when music is playing on the esp32 (stretch: build robustness by looking for a specific frequency) | Show serial printing when music is played (naive: the first loud sound) |
+| Build a web app where you can enter a room name to “join a room” and sync the content that each person sees in the web app. | Demonstrate this capability by creating two test rooms with two different users at the same time, and demonstrate the two way sync |
+| Enable synced audio to play with multiple users              | Show that the same audio can be played on two different devices in different rooms in sync. |
+| Test three way sync between the 6.08 server, the web app, and the ESP-32 | Using GET/POST requests, remotely control the ESP32 state from the web application directly (display a message entered from the web server on the ESP32 screen). |
+| **Week 2**                                                   |                                                              |
+| Get LEDs wired and hooked up to the arduino, for power + data input. | Demonstrate that LEDs turn on, deploy simple code that turns them on off. |
+| Write functions to control LEDs as a unit, individually, and patterns including strobing using FastLED Library | Demonstrate different commands / modes of LED visuals. Show at least the following modes: single color, two split colors (split at a provided index), and three split colors (split at two provided indexes). |
+| Process audio from .wav to extract beat                      | Demonstrate .wav form audio to beat conversion in python using sample songs |
+| convert to ESP-readable format (for music after first loud enough part to trigger ESP32) | “Play” a lightshow on the ESP32, reading from the designed format. |
+| Create integrated prototype of web app song chooser, beat processing, and associated lights. | Demonstrate that a user can select a song in the web app, the pre-processed light show information is sent to the ESP32, and the lights are played. Does not demand good audio-light synchronization. |
+| **Week 3**                                                   |                                                              |
+| Extract dominant frequency content of each beat and assign to color spectrum. | Synthesize audio of dominant frequency/ies and play, to verify accuracy. Use matplotlib + numpy to graph the resulting color arrays across the song. |
+| Enable pausing on the web application to sync with the ESP32 | Play audio on the web app, the esp32 lights should be running. Press pause and the lights + music should stop. Press play and they should resume again (still synced with the music).|
+| Integrate frequency data into LED patterns. | Display that, given data structures for the frequency values in a song, the LED can perform a light show with adaptive changes in brightness and/or hue.|
+| Integrate light show with beat data on the server. | Play a song on the webapp and show light show playing along with the song. Play another song and see that the light show is different and also plays along with that song.|
+| Create integrated prototype which supports play/pause across multiple devices.   | Show that multiple users can select songs and press play or pause. Then, the appropriate light information is sent to all of their respective ESP32s, and plays, synchronized with their local audio. |
+| **Week 4**                                                   |                                                              |
+| Integrate audio processing with the queue                    | Demonstrate that audio files are processed as soon as they are added to the queue |
+| Songs can be added or removed from the queue on the web app, and will be played in order. | Add and remove songs to queue, demonstrate that the first song in queue will be played |
+| Use unique user_IDs to allow the proper room and song to be provided to the ESP  | Demonstrate that the user can change rooms and the ESP will correctly receive the song being played in this room. |
+| Integrate complete product, with ability to choose between beat and frequency mode, and join different rooms with other users. | Show that users can join a room, choose the desired light mode, and pick songs from Youtube to add to the queue, where the audio will be processed. Then, songs will play from the queue, sending the light show information to the users ESPs and syncing locally. |
+
+
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>

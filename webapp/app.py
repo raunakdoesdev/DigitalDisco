@@ -25,7 +25,7 @@ song = st.selectbox(label='Song', options=list(songs.keys()))
 color = st.text_input(label='Color')
 
 if st.button('Submit'):
-    send_request(color + song)
+    send_request(color + ' ' + song)
 
     st.write('### Media Player:')
     with open('webapp/media.html', 'r') as f:
