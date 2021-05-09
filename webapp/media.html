@@ -19,11 +19,12 @@
 
 </div>
 <audio controls id="player1" style="width:100%" autoplay>
-    <source src="SONGPATHHERE" type="audio/mpeg"/>
+    <source id="audiosource" src="SONGPATHHERE" type="audio/mpeg"/>
 </audio>
 
 <script type="text/javascript">
     var m, w;
+    let to;
 
     var run = function () {
 
@@ -73,4 +74,27 @@
     };
 
     run();
+
+    function httpGetAsync(theUrl) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
+                var audio = document.getElementById('player1')
+                var audio_src = document.getElementById("audiosource");
+                console.log(`${audio_src.getAttribute('src')} v.s. ${xmlHttp.responseText}`)
+                if (audio_src.getAttribute('src') !== xmlHttp.responseText) {
+                    audio_src.setAttribute('src', xmlHttp.responseText);
+                    audio.load();
+                    audio.play();
+                }
+            }
+        };
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send(null);
+    }
+
+    setInterval(function () {
+        httpGetAsync('http://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=jsquery&room=shared')
+    }, 100);
+
 </script>
