@@ -1,8 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-import SessionState
-
 
 def send_request(message):
     import requests
@@ -19,7 +17,6 @@ songs = {
 st.title('Digital Disco')
 st.markdown('### App by Team 0')
 
-session_state = SessionState.get(room=None)
 username = st.text_input(label='User Name')
 room = st.selectbox(label='Room', options=['shared', 'room1'])
 song = send_request(f'user|{username}|{room}')
