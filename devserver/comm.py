@@ -1,4 +1,5 @@
 import sqlite3
+import datetime
 
 con = sqlite3.connect('/var/jail/home/team00/final/main.db')
 
@@ -26,6 +27,18 @@ def get_room_song(room, c=None):
     if c is not None: con.close()
     return song
 
+def get_room_song_recent(room, c=None):
+    cur = con.cursor() if c is None else c
+    cur.execute('''CREATE TABLE IF NOT EXISTS rooms (room text, song text, timing timestamp)''')
+    recently = datetime.datetime.now()- datetime.timedelta(seconds = 60) # if song has been inserted since last ping time
+    ret = cur.execute('''SELECT * FROM rooms WHERE room == ? AND WHERE timing > ?;''', (room,recently)).fetchall()
+    if len(ret) == 0:
+        return 0
+    else:
+        song = ret[0][1]
+
+    if c is not None: con.close()
+    return song
 
 def update_user_room(user, room, c=None):
     cur = con.cursor() if c is None else c
@@ -34,6 +47,17 @@ def update_user_room(user, room, c=None):
     cur.execute('''INSERT INTO users VALUES (?, ?)''', (user, room))
     con.commit()
     if c is not None: con.close()
+
+def get_user_room(user,c=None):
+    cur = con.cursor() if c is None else c
+    cur.execute('''CREATE TABLE IF NOT EXISTS users (user text, room text)''')
+    ret = cur.execute('''SELECT * FROM rooms WHERE user == ?;''', (user,)).fetchall()
+    if len(ret) == 0:
+        return None
+    else:
+        room = ret[0][1]
+    if c is not None: con.close()
+    return room
 
 
 def request_handler(request):
@@ -58,13 +82,14 @@ def request_handler(request):
     else:
         if request['values']['reason'] == 'jsquery':
             return get_room_song(request['values']['room'])
-        # with open('/var/jail/home/team00/final/temp.txt', 'r') as f:
-        #     s = f.read()
-        #     if s == '0\n':
-        #         return '0'
-        #     songname = '/var/jail/home/team00/final/' + s.split(None, 1)[1].replace(" ", "").replace("\n", "") + '.txt'
-        #     with open(songname, 'r') as f2:
-        #         out = f2.read().replace("\n", "")
-        # with open('/var/jail/home/team00/final/temp.txt', 'w') as f:
-        #     f.write('0\n')
-        # return out
+        if request['values']['reason'] == 'espquery':
+            room = get_user_room(request['values']['user'])
+            if room:
+                s = get_room_song_recent(room)
+                if s:
+                    songname = '/var/jail/home/team00/final/' + s.split(None, 1)[1].replace(" ", "").replace("\n", "") + '.txt'
+                    with open(songname, 'r') as f:
+                        return f.read()
+                else:
+                    return '0'
+            return '0'
