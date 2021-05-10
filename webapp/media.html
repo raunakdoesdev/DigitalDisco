@@ -9,8 +9,8 @@
         <b>
             <button id='forward'>Play</button>
         </b>
-        <button id='skipbackward'>Skip 5 Back</button>
-        <button id='skipforward'>Skip 5 Ahead</button>
+        <!--        <button id='skipbackward'>Skip 5 Back</button>-->
+        <!--        <button id='skipforward'>Skip 5 Ahead</button>-->
 
     </p>
     <p>
@@ -39,6 +39,9 @@
 
         console.log("Hello World!", to.query())
 
+        placeholder_fn = function () {
+        };
+
         // set up button click handlers
         var buttonsElem = document.getElementById("buttons");
         var self = this;
@@ -48,21 +51,15 @@
             else if (evt.target) elem = evt.target;
             if (elem.id === "pause") {
                 to.update({velocity: 0.0});
+                httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=pause&room=ROOMGOESHERE`)
             } else if (elem.id === "tostart") {
-                to.update({position: 0.0});
-            } else if (elem.id === "skipforward") {
-                to.update({position: to.query().position + 5});
-            } else if (elem.id === "skipbackward") {
-                to.update({position: to.query().position - 5});
+                to.update({position: 0.0, velocity: 0.0});
+                httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=pause&room=ROOMGOESHERE`)
             } else if (elem.id === "forward") {
-                var v = to.query();
-                if (v.position === 100 && v.velocity === 0) {
-                    to.update({position: 0.0, velocity: 1.0});
-                } else to.update({velocity: 1.0});
-            } else if (elem.id === "toend") {
-                to.update({position: 100.0});
+                to.update({velocity: 1.0});
+                httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=play&room=ROOMGOESHERE&position=${to.query().position}`)
             }
-        }
+        };
 
         // set up refresh of timingobject position
         to.on("timeupdate", function () {
@@ -71,30 +68,38 @@
 
         // set up video sync
         var sync1 = MCorp.mediaSync(document.getElementById('player1'), to);
+
+        if (to.query().velocity < 0.1) {
+            httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=pause&room=ROOMGOESHERE`)
+        } else {
+            httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=play&room=ROOMGOESHERE&position=${to.query().position}`)
+        }
+
     };
 
     run();
 
-    function httpGetAsync(theUrl) {
+    function httpGetAsync(theUrl, process = false) {
         var xmlHttp = new XMLHttpRequest();
-        xmlHttp.onreadystatechange = function () {
-            if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
-                var audio = document.getElementById('player1')
-                var audio_src = document.getElementById("audiosource");
-                console.log(`${audio_src.getAttribute('src')} v.s. ${xmlHttp.responseText}`)
-                if (audio_src.getAttribute('src') !== xmlHttp.responseText) {
-                    audio_src.setAttribute('src', xmlHttp.responseText);
-                    audio.load();
-                    audio.play();
+        if (process) {
+            xmlHttp.onreadystatechange = function () {
+                if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
+                    var audio = document.getElementById('player1')
+                    var audio_src = document.getElementById("audiosource");
+                    if (audio_src.getAttribute('src') !== xmlHttp.responseText) {
+                        audio_src.setAttribute('src', xmlHttp.responseText);
+                        audio.load();
+                        audio.play();
+                    }
                 }
-            }
-        };
+            };
+        }
         xmlHttp.open("GET", theUrl, true); // true for asynchronous
         xmlHttp.send(null);
     }
 
     setInterval(function () {
-        httpGetAsync('https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=jsquery&room=shared')
+        httpGetAsync('https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=jsquery&room=ROOMGOESHERE', true);
     }, 1000);
 
 </script>

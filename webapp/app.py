@@ -23,7 +23,8 @@ song = send_request(f'user|{username}|{room}')
 
 st.write('### Media Player:')
 with open('webapp/media.html', 'r') as f:
-    audio = components.html(f.read().replace('SONGPATHHERE', song).replace('MOTION_NAME_HERE', room),
+    audio = components.html(f.read().replace('SONGPATHHERE', song).replace('MOTION_NAME_HERE', room)
+                                    .replace('ROOMGOESHERE', room),
                             height=50)
 
 song_choice = st.selectbox(label='Song', options=list(songs.keys()))
