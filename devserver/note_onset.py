@@ -20,22 +20,22 @@ def spectral_difference(X):
     return SD
 
 def find_peaks(x, t, threshold, min_spacing):
+    '''
+    returns numpy array of indices of the peaks
+    '''
     x = x.copy()
     output = []
     cand = max(x)
     i_find = {elt: i for i, elt in enumerate(x)}
     while cand > threshold:
         i = i_find[cand]
-        output.append(t[i])
+        # output_times.append(t[i])
+        output.append(i)
         for j in range(i-min_spacing+1, i+min_spacing):
             if 0 <= j < len(x):
                 x[j] = 0
         cand = max(x)
     return sorted(output)
-
-def k_at_time(X, m):
-    l = [(k, abs(X_k)**2) for k, X_k in enumerate(X[m])]
-    return max(l, key=lambda x: x[1])[0]
 
 
 def k_for_note(X, m_start, m_stop):
@@ -65,6 +65,9 @@ def plot_spectral_difference(file, window_size=2048, step_size=256):
     plt.plot(t,SD)
     plt.show()
 
+'''
+wav_read/write: source: 6.003 library
+'''
 _normalize_funcs = {
     "int32": lambda d: d / 2147483648,
     "int16": lambda d: d / 32768,
@@ -123,7 +126,6 @@ def wav_write(samples, fs, fname):
     out = (out * 32767).astype("int16")
     wavfile.write(fname, fs, out)
 
-# plot_spectral_difference('Never Gonna Give You Up.wav')
 
 def beats(file, window_size=2048, step_size=512):
     start_time = time.time()
@@ -140,12 +142,14 @@ def beats(file, window_size=2048, step_size=512):
     print(min_spacing)
     threshold = 0.003 #TODO must tune 
     print(time.time()-start_time)
-    times = find_peaks(SD, t, threshold, min_spacing)
+    indices = find_peaks(SD, t, threshold, min_spacing)
+    if indices[0] != 0:
+        indices = [0] + indices
+    indices.append(len(t)-1)
+    times = np.take(t, indices)
     print(time.time()-start_time)
-    if times[0] != 0:
-        times = [0] + times
-    times.append(t[-1]) #append last time
     return times
+
 
 def create_beat_track(file, window_size=2048, step_size=512):
     sampling_rate,samples = wav_read(file)
@@ -164,3 +168,146 @@ def create_beat_track(file, window_size=2048, step_size=512):
                 output[n] = drum[n-start_sample]
     f = file[:-4] + '_beats.wav'
     wav_write(output,drum_sampling_rate,f )
+
+
+
+
+'''
+Source: f_pitch, pool_pitch, compute_spec_log_freq
+https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html
+'''
+def f_pitch(p, pitch_ref=69, freq_ref=440.0):
+    """Computes the center frequency/ies of a MIDI pitch
+
+    Notebook: C3/C3S1_SpecLogFreq-Chromagram.ipynb
+
+    Args:
+        p (float): MIDI pitch value(s)
+        pitch_ref (float): Reference pitch (default: 69)
+        freq_ref (float): Frequency of reference pitch (default: 440.0)
+
+    Returns:
+        freqs (float): Frequency value(s)
+    """
+    return 2 ** ((p - pitch_ref) / 12) * freq_ref
+
+def pool_pitch(p, Fs, N, pitch_ref=69, freq_ref=440.0):
+    """Computes the set of frequency indices that are assigned to a given pitch
+
+    Notebook: C3/C3S1_SpecLogFreq-Chromagram.ipynb
+
+    Args:
+        p (float): MIDI pitch value
+        Fs (scalar): Sampling rate
+        N (int): Window size of Fourier fransform
+        pitch_ref (float): Reference pitch (default: 69)
+        freq_ref (float): Frequency of reference pitch (default: 440.0)
+
+    Returns:
+        k (np.ndarray): Set of frequency indices
+    """
+    lower = f_pitch(p - 0.5, pitch_ref, freq_ref)
+    upper = f_pitch(p + 0.5, pitch_ref, freq_ref)
+    k = np.arange(N // 2 + 1)
+    k_freq = k * Fs / N  # F_coef(k, Fs, N)
+    mask = np.logical_and(lower <= k_freq, k_freq < upper)
+    return k[mask]
+
+def compute_spec_log_freq(Y, Fs, N):
+    """Computes a log-frequency spectrogram
+
+    Notebook: C3/C3S1_SpecLogFreq-Chromagram.ipynb
+
+    Args:
+        Y (np.ndarray): Magnitude or power spectrogram
+        Fs (scalar): Sampling rate
+        N (int): Window size of Fourier fransform
+
+    Returns:
+        Y_LF (np.ndarray): Log-frequency spectrogram
+        F_coef_pitch (np.ndarray): Pitch values
+    """
+    Y_LF = np.zeros((128, Y.shape[1]))
+    for p in range(128):
+        k = pool_pitch(p, Fs, N)
+        Y_LF[p, :] = Y[k, :].sum(axis=0)
+    F_coef_pitch = np.arange(128)
+    return Y_LF, F_coef_pitch
+
+def compute_chromagram(Y_LF):
+    """Computes a chromagram
+
+    Notebook: C3/C3S1_SpecLogFreq-Chromagram.ipynb
+
+    Args:
+        Y_LF (np.ndarray): Log-frequency spectrogram
+
+    Returns:
+        C (np.ndarray): Chromagram
+    """
+    C = np.zeros((12, Y_LF.shape[1]))
+    p = np.arange(128)
+    for c in range(12):
+        mask = (p % 12) == c
+        C[c, :] = Y_LF[mask, :].sum(axis=0)
+    return C
+
+
+def colors_and_beats(file, window_size=4192, step_size=512):
+    start_time = time.time()
+    fs,samples = wav_read(file)
+    print(fs, samples.shape)
+    f,t,X = stft(samples,fs,nperseg=window_size, noverlap=(window_size-step_size) )
+    SD = spectral_difference(X)
+    min_spacing = int(0.23*fs/step_size) #TODO must tune
+    threshold = 0.003 #TODO must tune 
+    print(time.time()-start_time)
+    indices = find_peaks(SD, t, threshold, min_spacing)
+    if indices[0] != 0:
+        indices = [0] + indices
+    indices.append(len(t)-1)
+    times = np.take(t, indices)
+    print(time.time()-start_time)
+    Y = np.abs(X)**2
+    Y_LF, F_coef_pitch = compute_spec_log_freq(Y, fs, window_size)
+    chroma = compute_chromagram(Y_LF)
+    max_k = np.argmax(Y_LF[0:95], axis=0)
+    # max_k = np.argmax(chroma, axis=0)
+    print(Y_LF.shape, max_k.shape)
+    #calculating max per note
+    colors = np.zeros(len(indices)-1)
+    resynth_fs = 8000
+    resynth_output = np.zeros(int(times[-1]+1)*resynth_fs)
+    for i in range(len(indices)-2):
+        m_start = indices[i]
+        m_end = indices[i+1]
+        temp = max_k[m_start:m_end]
+        colors[i] = np.amax(temp)
+        start_sample = int(times[i]*resynth_fs)
+        end_sample = int(times[i+1]*resynth_fs)
+        # freq = f_pitch(colors[i]+60)
+        freq = f_pitch(colors[i])
+        for n in range(start_sample, end_sample):
+            resynth_output[n] = (0.5*np.cos(2*np.pi*freq/resynth_fs*n))
+    print(time.time()-start_time)
+    f = file[:-4] + '_colors.wav'
+    print(resynth_output.shape)
+    wav_write(resynth_output, resynth_fs, f)
+    #evenly spread out across the color spectrum
+    offset = np.amin(colors[:-1])
+    diff = np.amax(colors)-offset
+    colors_norm = np.clip((colors-offset)*255/diff, 0, 255)
+    return times, colors_norm.astype(int)
+
+songname = 'NeverGonnaGiveYouUp'
+times, colors = colors_and_beats(songname+'.wav')
+#format: len(times), times[0], times[1], ... times[n-1], (note: NO trailing comma)
+n = len(times)
+out_times = str(n) + ','
+for t in times:
+    out_times += '{:.4f}'.format(t) + ','
+out_colors = str(len(colors)) + ','
+for c in colors:
+    out_colors += str(c) + ','
+with open(songname+'.txt', 'w') as f:
+    f.write(out_times[:-1]+'\n' + out_colors[:-1] + '\n ')
