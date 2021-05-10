@@ -23,6 +23,11 @@
 </audio>
 
 <script type="text/javascript">
+    songs_dict = {
+        'Never Gonna Give You Up': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Never%20Gonna%20Give%20You%20Up.mp3',
+        'Piano Man': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Piano%20Man.mp3'
+    };
+
     var m, w;
     let to;
 
@@ -68,13 +73,6 @@
 
         // set up video sync
         var sync1 = MCorp.mediaSync(document.getElementById('player1'), to);
-
-        if (to.query().velocity < 0.1) {
-            httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=pause&room=ROOMGOESHERE`)
-        } else {
-            httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=play&room=ROOMGOESHERE&position=${to.query().position}`)
-        }
-
     };
 
     run();
@@ -84,10 +82,12 @@
         if (process) {
             xmlHttp.onreadystatechange = function () {
                 if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
+                    const song_url = songs_dict[xmlHttp.responseText.replace(/(\r\n|\n|\r)/gm,"")]
                     var audio = document.getElementById('player1')
                     var audio_src = document.getElementById("audiosource");
-                    if (audio_src.getAttribute('src') !== xmlHttp.responseText) {
-                        audio_src.setAttribute('src', xmlHttp.responseText);
+                    if (audio_src.getAttribute('src') !== song_url) {
+                        console.log(`${audio_src.getAttribute('src')} vs ${song_url}`);
+                        audio_src.setAttribute('src', song_url);
                         audio.load();
                         audio.play();
                     }
@@ -100,6 +100,6 @@
 
     setInterval(function () {
         httpGetAsync('https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=jsquery&room=ROOMGOESHERE', true);
-    }, 1000);
+    }, 250);
 
 </script>

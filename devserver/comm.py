@@ -74,13 +74,18 @@ def request_handler(request):
             if message[0] == 'room':
                 room, song = message[1:]
                 set_room_attr(room, 'song', song)
-                set_room_attr(request['values']['position'], 'song_changed', 1)
+                set_room_attr(room, 'song_changed', 1)
                 return song
 
             return 'Success'
 
         else:
             # App stuff
+
+            if request['values']['reason'] == 'debug':
+                cur = con.cursor()
+                return str(cur.execute('''SELECT * FROM rooms;''').fetchall())
+
             if request['values']['reason'] == 'jsquery':
                 return get_room_attr(request['values']['room'], 'song')
 
