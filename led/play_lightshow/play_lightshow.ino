@@ -42,7 +42,6 @@ void setup() {
   Serial.begin(115200);               // Set up serial port
   FastLED.addLeds<WS2811, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setBrightness(50);
-  //float times[] = {0.0, 0.5, 1.0, 2.0, 4.0, 8.0};  // integrate with alyssa's work (i.e. somehow receive times[])
   song_play = false;
   processed = false;
 
@@ -89,12 +88,13 @@ void loop() {
     delay(1000);
     Serial.println("go!");
   }
-  light_show_1(timestamps);
-  //play_song(timestamps);
+  //light_show_flash(timestamps);
+  //light_show_chase(timestamps);
+  light_show_chase_bins(timestamps); // like light_show_chase but finer bins
   //  }
 }
 
-void light_show_1(double* timestamp) {
+void light_show_flash(double* timestamp) {
   FastLED.show();
   switch (state) {
     case IDLE:
@@ -126,7 +126,7 @@ void light_show_1(double* timestamp) {
 }
 
 
-void light_show_2(double* timestamp) {
+void light_show_chase(double* timestamp) {
   FastLED.show();
   switch (state) {
     case IDLE:
@@ -145,9 +145,45 @@ void light_show_2(double* timestamp) {
       }
       notes = notes + 1;
       dot = dot + 2;
+      if (dot > NUM_LEDS) { // cycle leds
+        FastLED.clear();
+        dot = 0;
+      }
       if (notes > 200) {
         //FastLED.clear(); // end of show
-        next = IDLE;
+        break;
+      }
+      state = COLOR;
+      Serial.printf("Switched colors: time = %f, freq = %f \n", millis() - start, freq);
+      break;
+  }
+}
+
+void light_show_chase_bins(double* timestamp) {
+  FastLED.show();
+  switch (state) {
+    case IDLE:
+      state = COLOR;
+      start = millis();
+      break;
+    case COLOR:
+      freq = freqs[notes - 1];  // len(freq) = len(beats-1)
+      //freq = (double) ((int)(freq / 32) * 32.0);
+      leds[dot] = CHSV(freq, 255, 127); // change single dot (starts at 0)
+      leds[dot + 1] = CHSV(freq, 255, 127);
+      state = RETAIN;
+      break;
+    case RETAIN:
+      while (millis() - start < timestamp[notes]) {
+        FastLED.show();
+      }
+      notes = notes + 1;
+      dot = dot + 2;
+      if (dot > NUM_LEDS) { // cycle leds
+        dot = 0;
+      }
+      if (notes > 200) {
+        //FastLED.clear(); // end of show
         break;
       }
       state = COLOR;
