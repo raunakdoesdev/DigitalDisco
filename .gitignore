@@ -165,3 +165,4 @@ dmypy.json
 *.app
 
 *.db
+.idea/sqldialects.xml
