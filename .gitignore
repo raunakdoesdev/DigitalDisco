@@ -164,3 +164,4 @@ dmypy.json
 *.out
 *.app
 
+*.db
