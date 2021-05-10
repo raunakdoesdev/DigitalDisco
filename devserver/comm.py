@@ -91,7 +91,7 @@ def request_handler(request):
             if request['values']['reason'] == 'play':
                 set_room_attr(request['values']['room'], 'paused', 0)
                 set_room_attr(request['values']['room'], 'pause_changed', 1)
-                set_room_attr(request['values']['position'], 'pause_changed', 1)
+                set_room_attr(request['values']['room'], 'position', request['values']['position'])
 
             # Providing data to the esp
             if request['values']['reason'] == 'espquery':
