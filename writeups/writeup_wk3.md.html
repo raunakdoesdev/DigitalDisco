@@ -1,0 +1,61 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/apidoc.css?">
+
+# Deliverables: Wk 3
+
+
+## Frequency Mapping
+
+You can see this functionality here:
+
+![Stayin' Alive](demo_songs/stayin_alive_superimposed.mp3)
+![Never Gonna Give You Up](demo_songs/nggyu_superimposed.mp3)
+![Stitches](demo_songs/stitches_superimposed.mp3)
+![Piano Man](demo_songs/pianoman_superimposed.mp3)
+
+This builds on the beat detection from week 2. 
+I used log-power spectrogram data to find the most dominant frequency within each time-segment corresponding to a beat.
+These frequency bands are centered on the semi tones of the diatonic scale system, using A=440Hz. 
+By binning into these frequency bands, the goal is to have a more perceptually-motivated picture of where the dominant frequency in the music is. 
+The code to produce this binned-spectrogram was taken from the source below. 
+
+One caveat I noticed is that in music with a lot of percussive elements (ex: claps, high hat, etc), there is a lot of high frequency power that don't necessarily correspond to melodic or harmonic cpmponents. 
+To help aid in ignoring these, I cut off the very highest frequency components, above about a C7. 
+
+I also played around with using a chromagram, which further condenses the frequency components into the 12 semi-tones in a single octave. 
+However, this had a lot of repeated dominant frequencies even when the actual melodic and harmonic content varied, so I chose to stick with the log-power spectrogram.
+
+The process was as follows:
+- Compute the log-power spectrogram
+- Find the maximum frequency band for each window
+- Find the most frequent max frequency over all the windows within a beat's time-segment
+- Map the resulting frequency bands to range over the whole hue spectrum [0,255] (FastLED uses this range for easier computation.)
+Thus, the exact hue mapping depends on the range of the song, so that it can show the greatest possible color difference between adjacent notes in a song. 
+
+![Figure [1]: FastLED hue spectrum](fastLED_hues.jpg)
+
+Hue mappings for sample songs (using matplotlib 'hsv' color map, so not perfect correspondance to FastLED spectrum)
+![Never Gonna Give You Up](demo_songs\nggyu_colors.png)
+![Piano Man](demo_songs\PianoMan_colors.png)
+
+Resynthesized frequencies: 
+Note: because of the binning process, these sound a bit out of tune and I fully acknowledge that. However, I still think they do a decent job of capturing what is going on. 
+Furthermore, when there are things like strong step-wise ascents and descents, they do usually reflect that, which should tranlate well to the LED patterns. 
+WARNING: very high frequencies!! Please turn down your sound!! 
+![Never Gonna Give You Up](demo_songs\nggyu_colors_superimposed.mp3)
+![Piano Man](demo_songs\pianoMan_colors_superimposed.mp3)
+![Stayin' Alive](demo_songs\stayin_alive_colors_superimposed.mp3)
+
+
+Sources: ![1](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html)
+
+
+## Integrated Demo 
+
+Server-side:
+
+For this week, we put pre-processed times for our sample songs onto the server as txt files. This is because it takes a couple seconds to process a song (~3s), and there is no good way to build this time in until we have a song queue (which is a week 4 goal)
+When queried by the ESP, it returns a string of the times corresponding to that song, if and only if the song has just been selected in the webapp. 
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
+
