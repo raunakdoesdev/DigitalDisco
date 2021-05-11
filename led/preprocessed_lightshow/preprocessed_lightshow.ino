@@ -1,4 +1,5 @@
-//#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
+#include <WiFiClient.h>
 #include <string.h>
 #include "FastLED.h"
 
@@ -9,25 +10,38 @@ float switch_time;
 float show_time;
 
 const uint8_t IDLE = 0;
+
+const uint8_t PLAYING = 1;
+const uint8_t PAUSED = 2;
+uint8_t state;
+
 const uint8_t BLUE = 1;
 const uint8_t GREEN = 2;
 const uint8_t RETAIN = 3;
 const uint8_t RED = 4;
-uint8_t state;
+uint8_t play_state;
 float start;
 uint8_t next;
 int notes;
 int time_size;
+int freq_size;
+
+const uint8_t NO_CHANGE = 0;
+const uint8_t PAUSE = 1;
+const uint8_t PLAY = 2;
+const uint8_t START = 3;
 
 double timestamps[10000];
+int frequencies[10000];
 
-bool song_play;
-bool processed;
+bool song_done;
 
-//WiFiClient client2; //global WiFiClient Secure object
+WiFiClientSecure client; //global WiFiClient Secure object
+WiFiClient client2; //global WiFiClient Secure object
 
 const char NETWORK[] = "MIT GUEST";
 const char PASSWORD[] = "";
+char USER[] = "sunchoi";
 
 const uint16_t RESPONSE_TIMEOUT = 6000;
 const uint16_t IN_BUFFER_SIZE = 3500; //size of buffer to hold HTTP request
@@ -43,120 +57,176 @@ void setup() {
   // connect to wifi network
   //------------------------------------------------------------------------
   //PRINT OUT WIFI NETWORKS NEARBY
-//  int n = WiFi.scanNetworks();
-//  Serial.println("scan done");
-//  if (n == 0) {
-//    Serial.println("no networks found");
-//  } else {
-//    Serial.print(n);
-//    Serial.println(" networks found");
-//    for (int i = 0; i < n; ++i) {
-//      Serial.printf("%d: %s, Ch:%d (%ddBm) %s ", i + 1, WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "open" : "");
-//      uint8_t* cc = WiFi.BSSID(i);
-//      for (int k = 0; k < 6; k++) {
-//        Serial.print(*cc, HEX);
-//        if (k != 5) Serial.print(":");
-//        cc++;
-//      }
-//      Serial.println("");
-//    }
-//  }
-//  delay(100); //wait a bit (100 ms)
-//
-//  WiFi.begin(NETWORK, PASSWORD);
-//
-//  uint8_t count = 0; //count used for Wifi check times
-//  Serial.print("Attempting to connect to ");
-//  Serial.println(NETWORK);
-//  while (WiFi.status() != WL_CONNECTED && count < 12) {
-//    delay(500);
-//    Serial.print(".");
-//    count++;
-//  }
-//  delay(2000);
-//  if (WiFi.isConnected()) { //if we connected then print our IP, Mac, and SSID we're on
-//    Serial.println("CONNECTED!");
-//    Serial.printf("%d:%d:%d:%d (%s) (%s)\n", WiFi.localIP()[3], WiFi.localIP()[2],
-//                  WiFi.localIP()[1], WiFi.localIP()[0],
-//                  WiFi.macAddress().c_str() , WiFi.SSID().c_str());
-//    delay(500);
-//  } else { //if we failed to connect just Try again.
-//    Serial.println("Failed to Connect :/  Going to restart");
-//    Serial.println(WiFi.status());
-//    ESP.restart(); // restart the ESP (proper way)
-//  }
-  song_play = false;
-  processed = false;
+  int n = WiFi.scanNetworks();
+  Serial.println("scan done");
+  if (n == 0) {
+    Serial.println("no networks found");
+  } else {
+    Serial.print(n);
+    Serial.println(" networks found");
+    for (int i = 0; i < n; ++i) {
+      Serial.printf("%d: %s, Ch:%d (%ddBm) %s ", i + 1, WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "open" : "");
+      uint8_t* cc = WiFi.BSSID(i);
+      for (int k = 0; k < 6; k++) {
+        Serial.print(*cc, HEX);
+        if (k != 5) Serial.print(":");
+        cc++;
+      }
+      Serial.println("");
+    }
+  }
+  delay(100); //wait a bit (100 ms)
+
+  WiFi.begin(NETWORK, PASSWORD);
+
+  uint8_t count = 0; //count used for Wifi check times
+  Serial.print("Attempting to connect to ");
+  Serial.println(NETWORK);
+  while (WiFi.status() != WL_CONNECTED && count < 12) {
+    delay(500);
+    Serial.print(".");
+    count++;
+  }
+  delay(2000);
+  if (WiFi.isConnected()) { //if we connected then print our IP, Mac, and SSID we're on
+    Serial.println("CONNECTED!");
+    Serial.printf("%d:%d:%d:%d (%s) (%s)\n", WiFi.localIP()[3], WiFi.localIP()[2],
+                  WiFi.localIP()[1], WiFi.localIP()[0],
+                  WiFi.macAddress().c_str() , WiFi.SSID().c_str());
+    delay(500);
+  } else { //if we failed to connect just Try again.
+    Serial.println("Failed to Connect :/  Going to restart");
+    Serial.println(WiFi.status());
+    ESP.restart(); // restart the ESP (proper way)
+  }
+  song_done = false;
   notes = 1;
   show_time = millis();
   switch_time = millis();
-  state = IDLE;
+  play_state = IDLE;
   next = IDLE;
-  strcpy(response_buffer, "751,0.0000,0.2206,0.6037,0.8707,1.1378,1.5557,1.7995,2.0782,2.3336,2.6122,2.8677,3.1231,3.3901,3.6688,3.9126,4.2028,4.4466,4.7253,4.9807,5.2593,5.7934,6.0372,6.3158,6.5712,6.8499,7.0937,7.3723,7.6278,7.9064,8.1618,8.4172,8.6843,8.9629,9.2183,9.4737,10.0194,10.2864,10.5535,10.7973,11.0759,11.3313,11.6100,11.8538,12.1440,12.3878,12.6665,12.9219,13.2005,13.4444,13.7114,14.2571,14.5125,14.7679,15.0349,15.3252,15.5690,15.8476,16.1030,16.3701,16.6255,16.9041,17.1595,17.4266,17.6820,17.9374,18.4947,18.7385,18.9939,19.2726,19.5512,19.7950,20.0737,20.3407,20.6077,20.8631,21.1185,21.3856,21.6642,22.1751,22.4421,22.7323,22.9878,23.2548,23.4986,23.7888,24.0327,24.3113,24.5551,24.8454,25.0892,25.3678,25.6116,25.8902,26.1457,26.4243,26.6797,26.9584,27.2138,27.4692,27.7246,28.0149,28.2587,28.5257,28.7927,29.0830,29.3152,29.5822,29.8493,30.1279,30.4181,30.6620,30.9058,31.1844,31.4398,31.7185,31.9623,32.2525,32.4963,32.7634,33.0304,33.3090,33.5644,33.8199,34.0985,34.3655,34.6093,34.8996,35.1434,35.4337,35.6775,35.9561,36.2115,36.4902,36.7340,37.0126,37.2680,37.5351,37.7905,38.0459,38.3245,38.6032,38.8470,39.1140,39.3810,39.6597,39.9151,40.1705,40.4376,40.7278,40.9716,41.2502,41.4941,41.7727,42.0281,42.3068,42.5622,42.8292,43.0846,43.3400,43.6071,43.8973,44.1411,44.4198,44.6752,44.9422,45.2093,45.4647,45.7201,46.0103,46.3122,46.5444,46.7998,47.0668,47.3223,47.6009,47.8447,48.1350,48.4020,48.6574,48.9128,49.1915,49.4353,49.7139,49.9810,50.2480,50.4918,50.7588,51.0491,51.3045,51.5599,51.8153,52.0940,52.3610,52.6164,52.8951,53.1505,53.4059,53.6729,53.9516,54.1838,54.4856,54.7410,55.0081,55.2403,55.5305,55.7976,56.0646,56.3084,56.5986,56.8424,57.1095,57.3765,57.6435,57.9106,58.1660,58.4330,58.7117,58.9671,59.2457,59.4895,59.7682,60.0236,60.2790,60.8363,61.0801,61.3587,61.6025,61.8928,62.1366,62.4152,62.6823,62.9377,63.1931,63.4601,63.7272,64.0058,64.5399,64.7837,65.0739,65.3177,65.5964,65.8518,66.1304,66.3742,66.6529,66.9083,67.1869,67.4307,67.6862,67.9648,68.2434,68.4873,68.7659,69.0329,69.3000,69.5438,69.8108,70.0778,70.3681,70.6119,70.8905,71.1459,71.4130,71.6568,71.9470,72.1908,72.4695,73.0035,73.2473,73.5376,73.7814,74.0600,74.3155,74.5941,74.8379,75.1166,75.3720,75.6506,75.9293,76.1615,76.4749,76.7071,76.9625,77.2412,77.4850,77.7752,78.0190,78.2977,78.5415,78.8317,79.0756,79.3542,79.6212,79.8766,80.1321,80.4107,80.6661,80.9448,81.1886,81.4672,81.7226,82.0129,82.2451,82.5353,82.7791,83.0694,83.3016,83.5686,83.8124,84.1143,84.3581,84.6483,84.9038,85.1708,85.4262,85.6816,85.9719,86.2389,86.4943,86.7614,87.0284,87.3070,87.5508,87.8063,88.0733,88.3519,88.6654,88.8860,89.1298,89.4084,89.6639,89.9193,90.1979,90.4766,90.7204,90.9990,91.2544,91.5331,91.7885,92.0555,92.3341,92.5896,92.8450,93.1004,93.3674,93.6461,93.8899,94.1569,94.4472,94.7026,94.9696,95.2134,95.5037,95.7707,96.0145,96.2932,96.5370,96.8272,97.1175,97.3497,97.5935,97.8721,98.1275,98.3829,98.6616,98.9402,99.1956,99.4627,99.7297,99.9967,100.2405,100.5076,100.8094,101.0532,101.3203,101.5873,101.8427,102.1098,102.3652,102.6206,102.8992,103.1663,103.4333,103.7003,103.9557,104.2344,104.4782,104.7568,105.0006,105.2909,105.5927,105.8133,106.0804,106.3474,106.6028,106.8582,107.1485,107.4039,107.6593,107.9147,108.1934,108.4720,108.7158,108.9945,109.2731,109.5285,109.7723,110.0510,110.3064,110.5734,110.8288,111.0843,111.3861,111.6415,111.8854,112.1524,112.4426,112.6980,112.9419,113.2089,113.4759,113.7546,114.0448,114.2886,114.5324,114.8111,115.0781,115.3219,115.6238,115.8792,116.1230,116.4016,116.6571,116.9357,117.1679,117.4581,117.7252,117.9922,118.2592,118.5030,118.7701,119.0487,119.3041,119.5595,120.0936,120.3606,120.6393,120.8831,121.1617,121.4171,121.6958,121.9396,122.2182,122.4737,122.7523,122.9961,123.2863,123.5302,123.7972,124.0642,124.3312,124.5983,124.8769,125.1207,125.3878,125.6432,125.9102,126.1772,126.4559,126.7113,126.9899,127.2337,127.5124,127.7678,128.0348,128.3019,128.5689,128.8243,129.1146,129.3468,129.6254,129.8808,130.1478,130.4149,130.6935,130.9489,131.2276,131.4830,131.7500,132.0054,132.2841,132.5395,132.8065,133.0620,133.3406,133.5844,133.8630,134.1185,134.3855,134.6525,134.9312,135.1866,135.4420,135.7090,135.9877,136.2431,136.5217,136.7655,137.0326,137.2880,137.5666,137.8104,138.1007,138.3561,138.6231,138.8669,139.1572,139.4010,139.6912,139.9351,140.2137,140.7478,140.9916,141.2702,141.5372,141.8043,142.3267,142.5821,142.8608,143.1046,143.3832,143.6270,143.9173,144.1727,144.4513,144.6951,144.9738,145.2060,145.5078,145.7749,146.0187,146.2857,146.5644,146.8082,147.0984,147.3306,147.6209,147.8647,148.1549,148.3987,148.6774,149.2114,149.7455,149.9893,150.2679,150.5117,150.8020,151.0458,151.3128,151.8585,152.1488,152.3693,152.6364,152.9150,153.1588,153.4491,153.6929,153.9831,154.2269,154.5056,154.7610,155.0396,155.2718,155.5505,155.8291,156.1078,156.3400,156.6302,156.8740,157.1527,157.3965,157.6867,157.9305,158.2208,158.4646,158.7432,158.9870,159.2773,159.5211,159.7997,160.0435,160.3338,160.5776,160.8562,161.1117,161.3903,161.6341,161.9011,162.1682,162.4468,162.7138,162.9576,163.2247,163.5149,163.7587,164.0141,164.3044,164.5598,164.8617,165.0939,165.3493,165.6163,165.8717,166.1504,166.3942,166.6844,166.9399,167.2069,167.4623,167.7410,167.9848,168.2634,168.5188,168.7975,169.0645,169.3083,169.5753,169.8540,170.1094,170.3648,170.6434,170.9105,171.1775,171.4445,171.7116,171.9786,172.2224,172.5010,172.7449,173.0351,173.2905,173.5576,173.7898,174.0916,174.3470,174.6257,174.8579,175.1481,175.3919,175.6590,175.9260,176.2046,176.4600,176.7155,176.9825,177.2611,177.5166,177.7720,178.0390,178.3176,178.5731,178.8285,179.1071,179.3741,179.6528,179.9082,180.1752,180.4423,180.6861,180.9647,181.2201,181.4872,181.7426,182.0096,182.2766,182.5553,182.8107,183.0893,183.3332,183.6234,183.8904,184.1459,184.4013,184.6799,184.9237,185.2024,185.4462,185.7364,186.0034,186.2589,186.5143,186.7929,187.0367,187.3038,187.5940,187.8494,188.1165,188.3835,188.6505,188.9176,189.1614,189.4168,189.6838,189.9741,190.2411,190.4965,190.7403,191.0190,191.2860,191.5530,191.7968,192.0871,192.3309,192.6095,192.8766,193.1436,193.3874,193.6776,193.9331,194.2001,194.4671,194.7341,194.9896,195.2682,195.5120,195.7907,196.0461,196.3247,196.5801,196.8356,197.1142,197.3928,197.6366,197.9153,198.1591,198.4377,198.6815,198.9718,199.2156,199.4942,200.0283,200.5624,201.0848,201.6189,202.1413,202.6754,203.1862,203.7319,204.2427,204.7884,211.5454");
 }
 
 void loop() {
-//  if (!song_play) {
-//    memset(request_buffer, 0, sizeof(request_buffer));
-//    strcpy(request_buffer, "GET http://608dev-2.net/sandbox/sc/team00/final/comm.py HTTP/1.1\r\n");
-//    strcat(request_buffer, "Host: 608dev-2.net\r\n");
-//    strcat(request_buffer, "\r\n");
-//    do_http_request("608dev-2.net", request_buffer, response_buffer, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);
-//    if (response_buffer[0] != '0') {
-//      song_play = true;
-//      processed = false;
-//    }
-//  } else {
-    //process and parse timestamps string
-    if (processed == false) {
+  switch (state) {
+    case IDLE: {
+      send_request(USER, request_buffer, response_buffer);
       char* current = strtok(response_buffer, ",");
-      time_size = atoi(current);
-      int i = 0;
-      current = strtok(NULL, ",");
-      while (current != NULL) {
-        timestamps[i] = 1000 * atof(current); //gets time in millis
-        i++;
+      int indicator = atoi(current);
+      if (indicator == PLAY) {
         current = strtok(NULL, ",");
+        time_size = atoi(current);
+        current = strtok(NULL, ",");
+        for (int i = 0; i < time_size; i++) {
+          timestamps[i] = 1000 * atof(current);
+          current = strtok(NULL, ",");
+        }
+//        freq_size = atoi(current);
+//        current = strtok(NULL, ",");
+//        for (int i = 0; i < freq_size; i++) {
+//          frequencies[i] = atoi(current);
+//          current = strtok(NULL, ",");
+//        }
+        song_done = false;
+        play_song(timestamps);
+        state = PLAYING;
       }
-      processed = true;
-      Serial.println("Starting light show in 3...");
-      delay(1000);
-      Serial.println("2...");
-      delay(1000);
-      Serial.println("1...");
-      delay(1000);
-      Serial.println("go!");
+      break;
     }
-    play_song(timestamps);
-//  }
+    case PLAYING: {
+      send_request(USER, request_buffer, response_buffer);
+      char* current = strtok(response_buffer, ",");
+      int indicator = atoi(current);
+      if (song_done == true) {
+        state = IDLE;
+        break;
+      }
+      else if (indicator == NO_CHANGE) {
+        play_song(timestamps);
+      }
+      else if (indicator == PAUSE) {
+        FastLED.clear();
+        state = PAUSED;
+        break;
+      }
+      else if (indicator == START) {
+        current = strtok(NULL, ",");
+        time_size = atoi(current);
+        current = strtok(NULL, ",");
+        for (int i = 0; i < time_size; i++) {
+          timestamps[i] = 1000 * atof(current);
+          current = strtok(NULL, ",");
+        }
+//        freq_size = atoi(current);
+//        current = strtok(NULL, ",");
+//        for (int i = 0; i < freq_size; i++) {
+//          frequencies[i] = atoi(current);
+//          current = strtok(NULL, ",");
+//        }
+        song_done = false;
+        play_song(timestamps);
+      }
+      break;
+    }
+    case PAUSED: {
+      send_request(USER, request_buffer, response_buffer);
+      char* current = strtok(response_buffer, ",");
+      int indicator = atoi(current);
+      if (indicator == PLAY) {
+        current = strtok(NULL, ",");
+        double paused_point = 1000 * atof(current);
+        adjust_times(timestamps, paused_point);
+        play_song(timestamps);
+        state = PLAYING;
+      }
+      else if (indicator == START) {
+        current = strtok(NULL, ",");
+        time_size = atoi(current);
+        current = strtok(NULL, ",");
+        for (int i = 0; i < time_size; i++) {
+          timestamps[i] = 1000 * atof(current);
+          current = strtok(NULL, ",");
+        }
+//        freq_size = atoi(current);
+//        current = strtok(NULL, ",");
+//        for (int i = 0; i < freq_size; i++) {
+//          frequencies[i] = atoi(current);
+//          current = strtok(NULL, ",");
+//        }
+        song_done = false;
+        play_song(timestamps);
+      }
+      break;
+    }
+  }
 }
 
 void play_song(double* timestamp) {
   FastLED.show();
-  switch (state) {
+  switch (play_state) {
     case IDLE:
-      state = BLUE;
+      play_state = BLUE;
       start = millis();
       break;
     case BLUE:
       for (int dot = 0; dot < 10; dot++) {
         leds[dot] = CRGB::Blue;
       }
-      state = RETAIN;
+      play_state = RETAIN;
       next = GREEN;
       break;
     case GREEN:
       for (int dot = 0; dot < 10; dot++) {
         leds[dot] = CRGB::Red;
       }
-      state = RETAIN;
+      play_state = RETAIN;
       next = RED;
       break;
     case RED:
       for (int dot = 0; dot < 10; dot++) {
         leds[dot] = CRGB::Green;
       }
-      state = RETAIN;
+      play_state = RETAIN;
       next = BLUE;
       break;
     case RETAIN:
@@ -167,11 +237,37 @@ void play_song(double* timestamp) {
       if (notes > time_size) {
         FastLED.clear();
         next = IDLE;
-        song_play = false;
+        song_done = true;
         break;
       }
-      state = next;
+      play_state = next;
       Serial.printf("Switched colors: time = %f\n", millis() - start);
       break;
+  }
+}
+
+void send_request(char* username, char* request, char* response) {
+  memset(request, 0, sizeof(request_buffer));
+  strcpy(request, "GET http://608dev-2.net/sandbox/sc/team00/final/comm.py HTTP/1.1\r\n");
+  strcat(request, "Host: 608dev-2.net\r\n");
+  strcat(request, "\r\n");
+  char body[100];
+  sprintf(body, "reason=espquery&user=%s", username);
+  strcat(request, body);
+  do_http_request("608dev-2.net", request_buffer, response_buffer, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);  
+}
+
+void adjust_times(double* times, double pause) {
+  int new_start;
+  for (int i = 0; i < time_size; i++) {
+    times[i] = times[i] - pause;
+    if (times[i] < 0) {
+      new_start = i;
+    }
+  }
+  new_start++;
+  time_size -= new_start;
+  for (int i = 0; i < time_size; i++) {
+    times[i] = times[i + new_start];
   }
 }
