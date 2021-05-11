@@ -1,6 +1,5 @@
 #include <WiFiClientSecure.h>
 #include <WiFiClient.h>
-#include <string.h>
 #include "FastLED.h"
 
 #define NUM_LEDS 60
@@ -25,6 +24,7 @@ uint8_t next;
 int notes;
 int time_size;
 int freq_size;
+int timer;
 
 const uint8_t NO_CHANGE = 0;
 const uint8_t PAUSE = 1;
@@ -45,7 +45,7 @@ char USER[] = "sunchoi";
 
 const uint16_t RESPONSE_TIMEOUT = 6000;
 const uint16_t IN_BUFFER_SIZE = 3500; //size of buffer to hold HTTP request
-const uint16_t OUT_BUFFER_SIZE = 10000; //size of buffer to hold HTTP response
+const uint16_t OUT_BUFFER_SIZE = 1216; //size of buffer to hold HTTP response
 char request_buffer[IN_BUFFER_SIZE];
 char response_buffer[OUT_BUFFER_SIZE];
 
@@ -105,96 +105,111 @@ void setup() {
   switch_time = millis();
   play_state = IDLE;
   next = IDLE;
+  timer = millis();
 }
 
 void loop() {
   switch (state) {
     case IDLE: {
-      send_request(USER, request_buffer, response_buffer);
-      char* current = strtok(response_buffer, ",");
-      int indicator = atoi(current);
-      if (indicator == PLAY) {
-        current = strtok(NULL, ",");
-        time_size = atoi(current);
-        current = strtok(NULL, ",");
-        for (int i = 0; i < time_size; i++) {
-          timestamps[i] = 1000 * atof(current);
+      if (millis() - timer > 250) {
+        send_request(USER, request_buffer, response_buffer);
+        char* current = strtok(response_buffer, ",");
+        int indicator = atoi(current);
+        if (indicator == START) {
           current = strtok(NULL, ",");
+          time_size = atoi(current);
+          current = strtok(NULL, ",");
+          for (int i = 0; i < time_size; i++) {
+            timestamps[i] = 1000 * atof(current);
+            current = strtok(NULL, ",");
+          }
+  //        freq_size = atoi(current);
+  //        current = strtok(NULL, ",");
+  //        for (int i = 0; i < freq_size; i++) {
+  //          frequencies[i] = atoi(current);
+  //          current = strtok(NULL, ",");
+  //        }
+          song_done = false;
+          play_song(timestamps);
+          state = PLAYING;
         }
-//        freq_size = atoi(current);
-//        current = strtok(NULL, ",");
-//        for (int i = 0; i < freq_size; i++) {
-//          frequencies[i] = atoi(current);
-//          current = strtok(NULL, ",");
-//        }
-        song_done = false;
-        play_song(timestamps);
-        state = PLAYING;
+        else if (indicator == PLAY) {
+          current = strtok(NULL, ",");
+          double paused_point = 1000 * atof(current);
+          adjust_times(timestamps, paused_point);
+          play_song(timestamps);
+          state = PLAYING;
+        }
+        timer = millis();
       }
       break;
     }
     case PLAYING: {
-      send_request(USER, request_buffer, response_buffer);
-      char* current = strtok(response_buffer, ",");
-      int indicator = atoi(current);
-      if (song_done == true) {
-        state = IDLE;
-        break;
-      }
-      else if (indicator == NO_CHANGE) {
-        play_song(timestamps);
-      }
-      else if (indicator == PAUSE) {
-        FastLED.clear();
-        state = PAUSED;
-        break;
-      }
-      else if (indicator == START) {
-        current = strtok(NULL, ",");
-        time_size = atoi(current);
-        current = strtok(NULL, ",");
-        for (int i = 0; i < time_size; i++) {
-          timestamps[i] = 1000 * atof(current);
-          current = strtok(NULL, ",");
+      play_song(timestamps);
+      if (millis() - timer > 250) {
+        send_request(USER, request_buffer, response_buffer);
+        char* current = strtok(response_buffer, ",");
+        int indicator = atoi(current);
+        if (song_done == true) {
+          state = IDLE;
+          break;
         }
-//        freq_size = atoi(current);
-//        current = strtok(NULL, ",");
-//        for (int i = 0; i < freq_size; i++) {
-//          frequencies[i] = atoi(current);
-//          current = strtok(NULL, ",");
-//        }
-        song_done = false;
-        play_song(timestamps);
+        else if (indicator == PAUSE) {
+          FastLED.clear();
+          state = PAUSED;
+          break;
+        }
+        else if (indicator == START) {
+          current = strtok(NULL, ",");
+          time_size = atoi(current);
+          current = strtok(NULL, ",");
+          for (int i = 0; i < time_size; i++) {
+            timestamps[i] = 1000 * atof(current);
+            current = strtok(NULL, ",");
+          }
+  //        freq_size = atoi(current);
+  //        current = strtok(NULL, ",");
+  //        for (int i = 0; i < freq_size; i++) {
+  //          frequencies[i] = atoi(current);
+  //          current = strtok(NULL, ",");
+  //        }
+          song_done = false;
+          play_song(timestamps);
+        }
+        timer = millis();
       }
       break;
     }
     case PAUSED: {
-      send_request(USER, request_buffer, response_buffer);
-      char* current = strtok(response_buffer, ",");
-      int indicator = atoi(current);
-      if (indicator == PLAY) {
-        current = strtok(NULL, ",");
-        double paused_point = 1000 * atof(current);
-        adjust_times(timestamps, paused_point);
-        play_song(timestamps);
-        state = PLAYING;
-      }
-      else if (indicator == START) {
-        current = strtok(NULL, ",");
-        time_size = atoi(current);
-        current = strtok(NULL, ",");
-        for (int i = 0; i < time_size; i++) {
-          timestamps[i] = 1000 * atof(current);
+      if (millis() - timer > 250) {
+        send_request(USER, request_buffer, response_buffer);
+        char* current = strtok(response_buffer, ",");
+        int indicator = atoi(current);
+        if (indicator == PLAY) {
           current = strtok(NULL, ",");
+          double paused_point = 1000 * atof(current);
+          adjust_times(timestamps, paused_point);
+          play_song(timestamps);
+          state = PLAYING;
         }
-//        freq_size = atoi(current);
-//        current = strtok(NULL, ",");
-//        for (int i = 0; i < freq_size; i++) {
-//          frequencies[i] = atoi(current);
-//          current = strtok(NULL, ",");
-//        }
-        song_done = false;
-        play_song(timestamps);
+        else if (indicator == START) {
+          current = strtok(NULL, ",");
+          time_size = atoi(current);
+          current = strtok(NULL, ",");
+          for (int i = 0; i < time_size; i++) {
+            timestamps[i] = 1000 * atof(current);
+            current = strtok(NULL, ",");
+          }
+  //        freq_size = atoi(current);
+  //        current = strtok(NULL, ",");
+  //        for (int i = 0; i < freq_size; i++) {
+  //          frequencies[i] = atoi(current);
+  //          current = strtok(NULL, ",");
+  //        }
+          song_done = false;
+          play_song(timestamps);
+        }
+        timer = millis();
       }
       break;
     }
@@ -247,14 +262,12 @@ void play_song(double* timestamp) {
 }
 
 void send_request(char* username, char* request, char* response) {
-  memset(request, 0, sizeof(request_buffer));
-  strcpy(request, "GET http://608dev-2.net/sandbox/sc/team00/final/comm.py HTTP/1.1\r\n");
-  strcat(request, "Host: 608dev-2.net\r\n");
-  strcat(request, "\r\n");
-  char body[100];
-  sprintf(body, "reason=espquery&user=%s", username);
-  strcat(request, body);
-  do_http_request("608dev-2.net", request_buffer, response_buffer, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);  
+  memset(request, 0, sizeof(request));
+  strcpy(request, "GET http://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=espquery&user=");
+  strcat(request, username);
+  strcat(request, " HTTP/1.1\r\n");
+  strcat(request, "Host: 608dev-2.net\r\n\r\n");
+  do_http_request("608dev-2.net", request, response, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);  
 }
 
 void adjust_times(double* times, double pause) {
