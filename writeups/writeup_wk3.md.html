@@ -113,6 +113,56 @@ When queried by the ESP, it returns a string of the times and colors correspondi
 ## Web App Requests
 
 On the web app, we set up a periodic asynchronous request to share the data relating to the room and song and timestamp interfacing with the above dev server communication app.
+
+## Server Integration
+
+The following demo satisfies both the server/Arduino integration deliverable and the pause/play feature deliverable. For two different songs, the LED strip produces light sequences that correspond to the song. The strip is controllable from the web app through the pause and play buttons.
+![Server Integration Demo](https://youtu.be/aiEZ53-an0Y)
+
+**Server/Arduino Integration**
+
+The ESP32 regularly sends get requests to comm.py on the dev server through the function `send_request`:
+```
+void send_request(char* username, char* request, char* response) {
+    memset(request, 0, sizeof(request));
+    strcpy(request, "GET http://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=espquery&user=");
+    strcat(request, username);
+    strcat(request, " HTTP/1.1\r\n");
+    strcat(request, "Host: 608dev-2.net\r\n\r\n");
+    do_http_request("608dev-2.net", request, response, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);  
+  }
+```
+The username is an identifier unique to that ESP32 that is used for communication between the ESP32 and the web app to determine which song is being played in that user's room. The same username must be entered through the specified field on the web app.
+
+When beginning to play a song, the response will contain a comma-separated list of timestamps preceded by the number of timestamps in the list and a comma-separated list of frequencies preceded by the number of frequencies in the list. The `strtok` function is used to parse the list and place the timestamp and frequencies in their respective arrays. For the purposes of this demo of initial integration between the server and the Arduino code, only the timestamps are used for the lightshow with a pattern function created in Week 2.
+
+**Pause/Play Feature**
+
+The ESP32 runs through a state machine that cycles through the three states IDLE, PLAYING, and PAUSED:
+* IDLE: nothing is being played on the web app, no LED sequences are running on the strip connected to the ESP32.
+* PLAYING: the song is being played on the web app along with the corresponding LED sequence on the strip.
+* PAUSED: the song has been paused on the web app, causing the LED sequence to stop in place.
+
+Using the web app requests described above, the GET requests will indicate any updates through an indicator number as the first item of a comma-separated list. The meanings of the indicator numbers are given by the following constants:
+```
+const uint8_t NO_CHANGE = 0;
+const uint8_t PAUSE = 1;
+const uint8_t PLAY = 2;
+const uint8_t START = 3;
+```
+
+* A change of PAUSE will stop the LED sequence.
+* A change of PLAY will resume the LED sequence from the timestamp where the song was paused. This timestamp is given as the next item in the comma-separated list.
+* A change of START will begin a new LED sequence corresponding to a new song. This will be followed by the timestamp and frequency comma-separated list that is then parsed with the `strtok` function as described previously.
+
+These changes are used to switch between the states in the state machine.
+
+## Support For Multiple Users
+
+The following demo involves the playing of a short LED sequences through two different devices for two different users through a Zoom call. This showcases the integration between the database on the server with the web app and Arduino code. In the previous demo, we have gone into the details of how the LED sequence syncs to the characteristics of the song and how the pause/play feature works with the LED strip.
+Therefore, this demo is very short and only shows the ability to play the same LED pattern in sync with two devices. Because the demo is conducted through a Zoom call, there is some delay.
+
+![Multiple User Demo](https://youtu.be/GxD8v5DtT-w)
+
 <style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
 <!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
-
