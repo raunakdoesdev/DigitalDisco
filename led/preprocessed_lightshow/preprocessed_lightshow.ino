@@ -44,7 +44,7 @@ const char PASSWORD[] = "";
 char USER[] = "sunchoi";
 
 const uint16_t RESPONSE_TIMEOUT = 6000;
-const uint16_t IN_BUFFER_SIZE = 3500; //size of buffer to hold HTTP request
+const uint16_t IN_BUFFER_SIZE = 500; //size of buffer to hold HTTP request
 const uint16_t OUT_BUFFER_SIZE = 1216; //size of buffer to hold HTTP response
 char request_buffer[IN_BUFFER_SIZE];
 char response_buffer[OUT_BUFFER_SIZE];
