@@ -49,6 +49,25 @@ WARNING: very high frequencies!! Please turn down your sound!!
 Sources: ![1](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html)
 
 
+
+## Integrate Frequency Data into LED Patterns
+
+The video below displays that, given data structures for the frequency values in a song, the LED can perform a light show with adaptive changes in hue:
+![Video](https://www.youtube.com/watch?v=hWuwHcWFKDU)
+
+
+I built onto the "light show" state machines from last week, so that they integrate the song's frequency data that is to be received from the server. 
+In the pattern shown on the video, the LED lights "flash" together" to the beat with an appropriate color. (Another pattern, where two LED lights are updated at a time to create a "chasing" sequence of lights, is in the play_lightshow.ino code.)
+
+As explained in the above section, the [0,256) Hue values of the HSV scale linearly map to ROYGBIV, so using the frequency-to-hue mapping values passed from the Frequency Mapping process, we are able to integrate audio (frequency) signal inputs with visual (Color) signal outputs.
+
+The state machine is structured as follows:
+	- IDLE state: FSM begins here, as an initial point before immediately transitioning to the COLOR state.
+	- COLOR state: determine the color to switch the LED light(s) to, by extracting the correct frequency value from the notes array. Switch to the RETAIN state.
+	- RETAIN state: In the case of the "chase" pattern, first determine which LED lights to update. Retain the color on the LED light(s) for the appropriate duration of time as specified in the timestamp[] array, unless the end of the song has been reached. Switch to the COLOR state to repeat the LED update process.
+
+
+
 ## Integrated Demo 
 
 Server-side:
