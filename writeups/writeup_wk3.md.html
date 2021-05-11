@@ -5,13 +5,6 @@
 
 ## Frequency Mapping
 
-You can see this functionality here:
-
-![Stayin' Alive](demo_songs/stayin_alive_superimposed.mp3)
-![Never Gonna Give You Up](demo_songs/nggyu_superimposed.mp3)
-![Stitches](demo_songs/stitches_superimposed.mp3)
-![Piano Man](demo_songs/pianoman_superimposed.mp3)
-
 This builds on the beat detection from week 2. 
 I used log-power spectrogram data to find the most dominant frequency within each time-segment corresponding to a beat.
 These frequency bands are centered on the semi tones of the diatonic scale system, using A=440Hz. 
@@ -34,19 +27,23 @@ Thus, the exact hue mapping depends on the range of the song, so that it can sho
 ![Figure [1]: FastLED hue spectrum](fastLED_hues.jpg)
 
 Hue mappings for sample songs (using matplotlib 'hsv' color map, so not perfect correspondance to FastLED spectrum)
+
+
 ![Never Gonna Give You Up](demo_songs\nggyu_colors.png)
-![Piano Man](demo_songs\PianoMan_colors.png)
+![Piano Man](demo_songs/PianoMan_colors.png)
 
 Resynthesized frequencies: 
 Note: because of the binning process, these sound a bit out of tune and I fully acknowledge that. However, I still think they do a decent job of capturing what is going on. 
 Furthermore, when there are things like strong step-wise ascents and descents, they do usually reflect that, which should tranlate well to the LED patterns. 
 WARNING: very high frequencies!! Please turn down your sound!! 
-![Never Gonna Give You Up](demo_songs\nggyu_colors_superimposed.mp3)
-![Piano Man](demo_songs\pianoMan_colors_superimposed.mp3)
-![Stayin' Alive](demo_songs\stayin_alive_colors_superimposed.mp3)
 
 
-Sources: ![1](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html)
+![Never Gonna Give You Up](demo_songs/nggyu_colors_superimposed.mp3)
+![Stayin' Alive](demo_songs/stayin_alive_colors_superimposed.mp3)
+
+
+
+Sources: https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html
 
 
 
