@@ -31,8 +31,8 @@ const uint8_t PAUSE = 1;
 const uint8_t PLAY = 2;
 const uint8_t START = 3;
 
-double timestamps[10000];
-int frequencies[10000];
+double timestamps[1000];
+int frequencies[1000];
 
 bool song_done;
 
