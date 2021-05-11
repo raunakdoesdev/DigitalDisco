@@ -67,14 +67,55 @@ The state machine is structured as follows:
 	- RETAIN state: In the case of the "chase" pattern, first determine which LED lights to update. Retain the color on the LED light(s) for the appropriate duration of time as specified in the timestamp[] array, unless the end of the song has been reached. Switch to the COLOR state to repeat the LED update process.
 
 
+## Server Side Database Structure
 
-## Integrated Demo 
+We created two SQL tables to store the data, one table stores per useri information (the user table) and the other table stores per room information (the room table).
 
-Server-side:
+The user table has the following fields:
+- **User** - Unique identifier for arduino board that needs to be entered on the webapp
+- **Room** - The room associated with this user, controlled by the web app
+- **Need update song?** - if true, the server will send information abotu the song to the arduino in its next query
+- **Need update play/pause state?** - if true, the server will send information abotu the play/pause state to the arduino in its next query
 
-For this week, we put pre-processed times for our sample songs onto the server as txt files. This is because it takes a couple seconds to process a song (~3s), and there is no good way to build this time in until we have a song queue (which is a week 4 goal)
-When queried by the ESP, it returns a string of the times corresponding to that song, if and only if the song has just been selected in the webapp. 
+The room table has the following fields:
+- **Room** - the room name
+- **Song** - the name of the song being played in the room
+- **Paused** - boolean flag of if the audio is currently paused or not
+- **Position** - the timestamp/position of the song in seconds
 
+The devserver maintains this data dependent on specific get/post requests from the server. See code below:
+
+```
+            if message[0] == 'user':
+                user, room = message[1:]
+                update_user_room(user, room)
+                return get_room_attr(room, 'song')
+
+            if message[0] == 'room':
+                room, song = message[1:]
+                set_room_attr(room, 'song', song)
+                set_user_room_attr(room, 'song_changed', 1)
+                return song
+
+            if request['values']['reason'] == 'pause':
+                set_room_attr(request['values']['room'], 'paused', 1)
+                set_user_room_attr(request['values']['room'], 'pause_changed', 1)
+
+            if request['values']['reason'] == 'play':
+                set_room_attr(request['values']['room'], 'paused', 0)
+                set_user_room_attr(request['values']['room'], 'pause_changed', 1)
+                set_room_attr(request['values']['room'], 'position', request['values']['position'])
+
+```
+
+Then based on the priority of updating about the song first and then the play/pause state, when the esp32 periodicially queries the dev server, we send an update back!
+
+For this week, we put pre-processed times for our sample songs onto the server as txt files. This is because it takes a couple seconds to process a song (~4s), and there is no good way to build this time in until we have a song queue (which is a week 4 goal).
+When queried by the ESP, it returns a string of the times and colors corresponding to that song, if and only if the song has just been selected in the webapp. 
+
+## Web App Requests
+
+On the web app, we set up a periodic asynchronous request to share the data relating to the room and song and timestamp interfacing with the above dev server communication app.
 <style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
 <!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
 
