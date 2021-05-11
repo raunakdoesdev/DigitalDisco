@@ -26,6 +26,8 @@ int time_size;
 int freq_size;
 int timer;
 
+const int QUERY_FREQ = 500;
+
 const uint8_t NO_CHANGE = 0;
 const uint8_t PAUSE = 1;
 const uint8_t PLAY = 2;
@@ -111,7 +113,7 @@ void setup() {
 void loop() {
   switch (state) {
     case IDLE: {
-      if (millis() - timer > 250) {
+      if (millis() - timer > QUERY_FREQ) {
         send_request(USER, request_buffer, response_buffer);
         char* current = strtok(response_buffer, ",");
         int indicator = atoi(current);
@@ -146,7 +148,7 @@ void loop() {
     }
     case PLAYING: {
       play_song(timestamps);
-      if (millis() - timer > 250) {
+      if (millis() - timer > QUERY_FREQ) {
         send_request(USER, request_buffer, response_buffer);
         char* current = strtok(response_buffer, ",");
         int indicator = atoi(current);
@@ -181,7 +183,7 @@ void loop() {
       break;
     }
     case PAUSED: {
-      if (millis() - timer > 250) {
+      if (millis() - timer > QUERY_FREQ) {
         send_request(USER, request_buffer, response_buffer);
         char* current = strtok(response_buffer, ",");
         int indicator = atoi(current);
