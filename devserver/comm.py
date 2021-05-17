@@ -187,7 +187,7 @@ def request_handler(request):
 
                         filename = f'/var/jail/home/team00/final/' + song.replace(" ", "") + '.txt'
                         with open(filename, 'r') as f:
-                            return '3,' + f.read().strip(' ') + ',' + str(led_mode)
+                            return '3,' + str(led_mode)+ ',' + f.read().strip(' ')
 
                     if get_user_attr(user, 'pause_changed') == 1:
                         set_user_attr(user, 'pause_changed', 0)
