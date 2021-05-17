@@ -1,6 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
-from webapp.audio_analysis import colors_and_beats
+from audio_analysis import colors_and_beats
 
 
 def send_request(message):
