@@ -29,6 +29,16 @@ with open('webapp/media.html', 'r') as f:
                             height=50)
 
 song_choice = st.selectbox(label='Song', options=list(songs.keys()))
+led_mode_dict = {
+    'Fast Waves': 0,
+    'Slow Waves': 1,
+    'Sun Gradients': 2,
+    'Moon Gradients': 3,
+    'Sparkles': 4,
+    'Pulses': 5
+}
+
+led_mode = st.selectbox(label='LED Mode', options=list(led_mode_dict.keys()))
 if st.button('Add to Queue'):
-    send_request(f'room|{room}|{song_choice}')
+    send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]}')
     st.write('Submitted!')

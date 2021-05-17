@@ -131,12 +131,16 @@ def request_handler(request):
 
             if message[0] == 'user':
                 user, room = message[1:]
+
+                try:
+                    if get_user_attr(user, 'room') == room: return ''
+                except:
+                    pass
                 update_user_room(user, room)
-                return get_room_attr(room, 'song')
 
             if message[0] == 'room':
-                room, song = message[1:]
-                add_to_queue(room, song)
+                room, song, led_mode = message[1:]
+                add_to_queue(room, song + '*' + led_mode)
 
             if message[0] == 'reset':
                 reset_queue(room, song)
@@ -152,7 +156,7 @@ def request_handler(request):
                     cur.execute('''SELECT * FROM users;''').fetchall())
 
             if request['values']['reason'] == 'jsquery':
-                return get_room_attr(request['values']['room'], 'song')
+                return get_room_attr(request['values']['room'], 'song').split('*')[0]
 
             if request['values']['reason'] == 'pause':
                 set_room_attr(request['values']['room'], 'paused', 1)
@@ -182,11 +186,11 @@ def request_handler(request):
 
                 if get_user_attr(user, 'song_changed') == 1:  # song changed
                     set_user_attr(user, 'song_changed', 0)
-                    song = get_room_attr(room, 'song')
+                    song, led_mode = get_room_attr(room, 'song').split('*')
 
                     filename = f'/var/jail/home/team00/final/' + song.replace(" ", "") + '.txt'
                     with open(filename, 'r') as f:
-                        return '3,' + f.read().strip(' ')
+                        return '3,' + f.read().strip(' ') + ',' + str(led_mode)
 
                 if get_user_attr(user, 'pause_changed') == 1:
                     set_user_attr(user, 'pause_changed', 0)
