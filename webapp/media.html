@@ -105,12 +105,11 @@
     }
 
     setInterval(function () {
-        httpGetAsync('https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=jsquery&room=ROOMGOESHERE', true);
-
         const audio = document.getElementById('player1');
         if (!isNaN(audio.duration) && to.query().position > audio.duration) {  // finished song
             httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=end&room=ROOMGOESHERE`);
         }
+        httpGetAsync('https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=jsquery&room=ROOMGOESHERE', true);
     }, 250);
 
 </script>

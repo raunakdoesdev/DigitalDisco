@@ -32,6 +32,7 @@ def get_room_attr(room, attr, c=None):
     create_room_table(cur)
     room_state = cur.execute('''SELECT * FROM rooms WHERE room == ? ORDER BY timing ASC;''', (room,)).fetchall()
     default_room[0] = room
+    if len(room_state) == 0: return None
     room_state = tuple(default_room) if len(room_state) == 0 else room_state[0]
     return room_state[room_attr_dict[attr]]
 
@@ -66,6 +67,12 @@ def add_to_queue(room, song, c=None):
     default_room[1] = song
     default_room[-1] = datetime.datetime.now()
     cur.execute('''INSERT INTO rooms VALUES (?, ?, ?, ?, ?)''', tuple(default_room))
+    if c is None: con.commit()
+
+
+def reset_queue(room, c=None):
+    cur = con.cursor() if c is None else c
+    cur.execute('''DELETE * FROM rooms WHERE room == ?;''', (room,))
     if c is None: con.commit()
 
 
@@ -131,6 +138,9 @@ def request_handler(request):
                 room, song = message[1:]
                 add_to_queue(room, song)
 
+            if message[0] == 'reset':
+                reset_queue(room, song)
+
             return 'Success'
 
         else:
@@ -156,13 +166,13 @@ def request_handler(request):
             if request['values']['reason'] == 'end':
                 reference = datetime.datetime.now() - datetime.timedelta(seconds=2)
 
-                with open('/var/jail/home/team00/final/pop_memory.txt', 'r'):
+                with open('/var/jail/home/team00/final/pop_memory.txt', 'r') as f:
                     time = datetime.datetime.strptime(f.read(), '%Y-%m-%d %H:%M:%S.%f')
 
                 if time < reference:
                     pop_song(request['values']['room'])  # remove top song
                     set_user_room_attr(request['values']['room'], 'song_changed', 1)
-                    with open('/var/jail/home/team00/final/pop_memory.txt', 'r'):
+                    with open('/var/jail/home/team00/final/pop_memory.txt', 'w') as f:
                         f.write(str(datetime.datetime.now()))
 
             # Providing data to the esp
