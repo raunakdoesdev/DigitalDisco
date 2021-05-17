@@ -1,13 +1,14 @@
 import sqlite3
 import datetime
 
-con = sqlite3.connect('/var/jail/home/team00/final/dev.db')
+con = sqlite3.connect('/var/jail/home/team00/final/queue.db')
 
 room_attr_dict = {
     'room': 0,
     'song': 1,
     'paused': 2,
-    'position': 3
+    'position': 3,
+    'time': 4,
 }
 
 user_attr_dict = {
@@ -17,19 +18,19 @@ user_attr_dict = {
     'song_changed': 3
 }
 
-default_room = [None, 'Never Gonna Give You Up', 1, 0]
+default_room = [None, 'Never Gonna Give You Up', 1, 0, datetime.datetime.now()]
 default_user = [None, 'shared', 0, 0]
 
 
 def create_room_table(cur):
     cur.execute('''CREATE TABLE IF NOT EXISTS rooms
-    (room text, song text, paused integer,  position text)''')
+    (room text, song text, paused integer,  position text, timing timestamp)''')
 
 
 def get_room_attr(room, attr, c=None):
     cur = con.cursor() if c is None else c
     create_room_table(cur)
-    room_state = cur.execute('''SELECT * FROM rooms WHERE room == ?;''', (room,)).fetchall()
+    room_state = cur.execute('''SELECT * FROM rooms WHERE room == ? ORDER BY timing ASC;''', (room,)).fetchall()
     default_room[0] = room
     room_state = tuple(default_room) if len(room_state) == 0 else room_state[0]
     return room_state[room_attr_dict[attr]]
@@ -38,14 +39,33 @@ def get_room_attr(room, attr, c=None):
 def set_room_attr(room, attr, val, c=None):
     cur = con.cursor() if c is None else c
     create_room_table(cur)
-    room_state = cur.execute('''SELECT * FROM rooms WHERE room == ?;''', (room,)).fetchall()
+    room_states = cur.execute('''SELECT * FROM rooms WHERE room == ?;''', (room,)).fetchall()
     default_room[0] = room
-    room_state = default_room if len(room_state) == 0 else list(room_state[0])
+    room_states = default_room if len(room_states) == 0 else [list(r) for r in room_states]
 
     cur.execute('''DELETE FROM rooms WHERE room = ?''', (room,))
-    room_state[room_attr_dict[attr]] = val
-    cur.execute('''INSERT INTO rooms VALUES (?, ?, ?, ?)''', tuple(room_state))
 
+    for room_state in room_states:
+        room_state[room_attr_dict[attr]] = val
+        cur.execute('''INSERT INTO rooms VALUES (?, ?, ?, ?, ?)''', tuple(room_state))
+
+    if c is None: con.commit()
+
+
+def pop_song(room, c=None):
+    cur = con.cursor() if c is None else c
+    create_room_table(cur)
+    cur.execute('''DELETE FROM rooms WHERE room == ? ORDER BY timing ASC LIMIT 1;''', (room,))
+    if c is None: con.commit()
+
+
+def add_to_queue(room, song, c=None):
+    cur = con.cursor() if c is None else c
+    create_room_table(cur)
+    default_room[0] = room
+    default_room[1] = song
+    default_room[-1] = datetime.datetime.now()
+    cur.execute('''INSERT INTO rooms VALUES (?, ?, ?, ?, ?)''', tuple(default_room))
     if c is None: con.commit()
 
 
@@ -109,9 +129,7 @@ def request_handler(request):
 
             if message[0] == 'room':
                 room, song = message[1:]
-                set_room_attr(room, 'song', song)
-                set_user_room_attr(room, 'song_changed', 1)
-                return song
+                add_to_queue(room, song)
 
             return 'Success'
 
@@ -134,6 +152,18 @@ def request_handler(request):
                 set_room_attr(request['values']['room'], 'paused', 0)
                 set_user_room_attr(request['values']['room'], 'pause_changed', 1)
                 set_room_attr(request['values']['room'], 'position', request['values']['position'])
+
+            if request['values']['reason'] == 'end':
+                reference = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+                with open('/var/jail/home/team00/final/pop_memory.txt', 'r'):
+                    time = datetime.datetime.strptime(f.read(), '%Y-%m-%d %H:%M:%S.%f')
+
+                if time < reference:
+                    pop_song(request['values']['room'])  # remove top song
+                    set_user_room_attr(request['values']['room'], 'song_changed', 1)
+                    with open('/var/jail/home/team00/final/pop_memory.txt', 'r'):
+                        f.write(str(datetime.datetime.now()))
 
             # Providing data to the esp
             if request['values']['reason'] == 'espquery':

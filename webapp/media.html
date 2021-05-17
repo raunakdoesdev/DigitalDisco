@@ -10,7 +10,7 @@
             <button id='forward'>Play</button>
         </b>
         <!--        <button id='skipbackward'>Skip 5 Back</button>-->
-        <!--        <button id='skipforward'>Skip 5 Ahead</button>-->
+        <button id='skip'>Skip 30 Ahead</button>
 
     </p>
     <p>
@@ -29,12 +29,12 @@
     };
 
     var m, w;
-    let to;
+    var to;
 
     var run = function () {
 
         // timing object
-        var to = new TIMINGSRC.TimingObject({range: [0, 100]});
+        to = new TIMINGSRC.TimingObject({range: [0, 500]});
 
         var mcorp_app = MCorp.app("8711565362037307822", {anon: true});
 
@@ -43,9 +43,6 @@
         });
 
         console.log("Hello World!", to.query())
-
-        placeholder_fn = function () {
-        };
 
         // set up button click handlers
         var buttonsElem = document.getElementById("buttons");
@@ -63,6 +60,11 @@
             } else if (elem.id === "forward") {
                 to.update({velocity: 1.0});
                 httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=play&room=ROOMGOESHERE&position=${to.query().position}`)
+            } else if (elem.id === "skip") {
+                const new_pos = to.query().position + 60.0;
+                to.update({position: new_pos});
+                httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=pause&room=ROOMGOESHERE`)
+                httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=play&room=ROOMGOESHERE&position=${new_pos}`)
             }
         };
 
@@ -72,7 +74,9 @@
         });
 
         // set up video sync
-        var sync1 = MCorp.mediaSync(document.getElementById('player1'), to);
+
+        const player = document.getElementById('player1')
+        var sync1 = MCorp.mediaSync(player, to);
     };
 
     run();
@@ -82,12 +86,13 @@
         if (process) {
             xmlHttp.onreadystatechange = function () {
                 if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
-                    const song_url = songs_dict[xmlHttp.responseText.replace(/(\r\n|\n|\r)/gm,"")]
+                    const song_url = songs_dict[xmlHttp.responseText.replace(/(\r\n|\n|\r)/gm, "")]
                     var audio = document.getElementById('player1')
                     var audio_src = document.getElementById("audiosource");
                     if (audio_src.getAttribute('src') !== song_url) {
                         console.log(`${audio_src.getAttribute('src')} vs ${song_url}`);
                         audio_src.setAttribute('src', song_url);
+                        to.update({position: 0});
                         audio.load();
                         audio.play();
                     }
@@ -100,6 +105,11 @@
 
     setInterval(function () {
         httpGetAsync('https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=jsquery&room=ROOMGOESHERE', true);
+
+        const audio = document.getElementById('player1');
+        if (!isNaN(audio.duration) && to.query().position > audio.duration) {  // finished song
+            httpGetAsync(`https://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=end&room=ROOMGOESHERE`);
+        }
     }, 250);
 
 </script>

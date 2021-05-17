@@ -28,6 +28,6 @@ with open('webapp/media.html', 'r') as f:
                             height=50)
 
 song_choice = st.selectbox(label='Song', options=list(songs.keys()))
-if st.button('Submit Song'):
+if st.button('Add to Queue'):
     send_request(f'room|{room}|{song_choice}')
     st.write('Subimtted!')
