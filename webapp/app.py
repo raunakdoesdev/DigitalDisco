@@ -42,3 +42,6 @@ led_mode = st.selectbox(label='LED Mode', options=list(led_mode_dict.keys()))
 if st.button('Add to Queue'):
     send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]}')
     st.write('Submitted!')
+
+if st.button('Reset Room and Queue'):
+    send_request(f'reset|{room}')

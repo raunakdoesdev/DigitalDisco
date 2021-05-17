@@ -72,7 +72,7 @@ def add_to_queue(room, song, c=None):
 
 def reset_queue(room, c=None):
     cur = con.cursor() if c is None else c
-    cur.execute('''DELETE * FROM rooms WHERE room == ?;''', (room,))
+    cur.execute('''DELETE FROM rooms WHERE room == ?;''', (room,))
     if c is None: con.commit()
 
 
@@ -131,11 +131,6 @@ def request_handler(request):
 
             if message[0] == 'user':
                 user, room = message[1:]
-
-                try:
-                    if get_user_attr(user, 'room') == room: return ''
-                except:
-                    pass
                 update_user_room(user, room)
 
             if message[0] == 'room':
@@ -143,7 +138,8 @@ def request_handler(request):
                 add_to_queue(room, song + '*' + led_mode)
 
             if message[0] == 'reset':
-                reset_queue(room, song)
+                room = message[1]
+                reset_queue(room)
 
             return 'Success'
 
