@@ -1,5 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
+from webapp.audio_analysis import colors_and_beats
 
 
 def send_request(message):
@@ -40,7 +41,9 @@ led_mode_dict = {
 
 led_mode = st.selectbox(label='LED Mode', options=list(led_mode_dict.keys()))
 if st.button('Add to Queue'):
-    send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]}')
+    filename = 'webapp/' + song_choice.replace(" ", "") + '.wav'
+    times_and_frequencies = colors_and_beats(filename)
+    send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]} | {times_and_frequencies}')
     st.write('Submitted!')
 
 if st.button('Reset Room and Queue'):

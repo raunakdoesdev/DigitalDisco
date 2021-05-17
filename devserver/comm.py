@@ -134,8 +134,8 @@ def request_handler(request):
                 update_user_room(user, room)
 
             if message[0] == 'room':
-                room, song, led_mode = message[1:]
-                add_to_queue(room, song + '*' + led_mode)
+                room, song, led_mode,times_and_freqs = message[1:]
+                add_to_queue(room, song + '*' + led_mode + '*' + times_and_freqs)
 
             if message[0] == 'reset':
                 room = message[1]
@@ -183,11 +183,11 @@ def request_handler(request):
 
                     if get_user_attr(user, 'song_changed') == 1:  # song changed
                         set_user_attr(user, 'song_changed', 0)
-                        song, led_mode = get_room_attr(room, 'song').split('*')
+                        song, led_mode,times_and_freqs = get_room_attr(room, 'song').split('*')
 
                         filename = f'/var/jail/home/team00/final/' + song.replace(" ", "") + '.txt'
                         with open(filename, 'r') as f:
-                            return '3,' + str(led_mode)+ ',' + f.read().strip(' ')
+                            return '3,' + str(led_mode) + ',' + times_and_freqs#f.read().strip(' ')
 
                     if get_user_attr(user, 'pause_changed') == 1:
                         set_user_attr(user, 'pause_changed', 0)
