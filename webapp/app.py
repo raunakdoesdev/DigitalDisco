@@ -12,7 +12,8 @@ prepend = '../'
 
 songs = {
     'Never Gonna Give You Up': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Never%20Gonna%20Give%20You%20Up.mp3',
-    'Piano Man': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Piano%20Man.mp3'
+    'Piano Man': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Piano%20Man.mp3',
+    'Stayin Alive': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Stayin%20Alive.mp3',
 }
 st.title('Digital Disco')
 st.markdown('### App by Team 0')
@@ -30,4 +31,4 @@ with open('webapp/media.html', 'r') as f:
 song_choice = st.selectbox(label='Song', options=list(songs.keys()))
 if st.button('Add to Queue'):
     send_request(f'room|{room}|{song_choice}')
-    st.write('Subimtted!')
+    st.write('Submitted!')

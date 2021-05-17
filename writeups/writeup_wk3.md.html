@@ -1,0 +1,168 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/apidoc.css?">
+
+# Deliverables: Wk 3
+
+
+## Frequency Mapping
+
+This builds on the beat detection from week 2. 
+I used log-power spectrogram data to find the most dominant frequency within each time-segment corresponding to a beat.
+These frequency bands are centered on the semi tones of the diatonic scale system, using A=440Hz. 
+By binning into these frequency bands, the goal is to have a more perceptually-motivated picture of where the dominant frequency in the music is. 
+The code to produce this binned-spectrogram was taken from the source below. 
+
+One caveat I noticed is that in music with a lot of percussive elements (ex: claps, high hat, etc), there is a lot of high frequency power that don't necessarily correspond to melodic or harmonic cpmponents. 
+To help aid in ignoring these, I cut off the very highest frequency components, above about a C7. 
+
+I also played around with using a chromagram, which further condenses the frequency components into the 12 semi-tones in a single octave. 
+However, this had a lot of repeated dominant frequencies even when the actual melodic and harmonic content varied, so I chose to stick with the log-power spectrogram.
+
+The process was as follows:
+- Compute the log-power spectrogram
+- Find the maximum frequency band for each window
+- Find the most frequent max frequency over all the windows within a beat's time-segment
+- Map the resulting frequency bands to range over the whole hue spectrum [0,255] (FastLED uses this range for easier computation.)
+Thus, the exact hue mapping depends on the range of the song, so that it can show the greatest possible color difference between adjacent notes in a song. 
+
+![Figure [1]: FastLED hue spectrum](fastLED_hues.jpg)
+
+Hue mappings for sample songs (using matplotlib 'hsv' color map, so not perfect correspondance to FastLED spectrum)
+
+
+![Never Gonna Give You Up](demo_songs\nggyu_colors.png)
+![Piano Man](demo_songs/PianoMan_colors.png)
+
+Resynthesized frequencies: 
+Note: because of the binning process, these sound a bit out of tune and I fully acknowledge that. However, I still think they do a decent job of capturing what is going on. 
+Furthermore, when there are things like strong step-wise ascents and descents, they do usually reflect that, which should tranlate well to the LED patterns. 
+WARNING: very high frequencies!! Please turn down your sound!! 
+
+
+![Never Gonna Give You Up](demo_songs/nggyu_colors_superimposed.mp3)
+![Stayin' Alive](demo_songs/stayin_alive_colors_superimposed.mp3)
+
+
+
+Sources: https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html
+
+
+
+## Integrate Frequency Data into LED Patterns
+
+The video below displays that, given data structures for the frequency values in a song, the LED can perform a light show with adaptive changes in hue:
+![Video](https://www.youtube.com/watch?v=hWuwHcWFKDU)
+
+
+I built onto the "light show" state machines from last week, so that they integrate the song's frequency data that is to be received from the server. 
+In the pattern shown on the video, the LED lights "flash" together" to the beat with an appropriate color. (Another pattern, where two LED lights are updated at a time to create a "chasing" sequence of lights, is in the play_lightshow.ino code.)
+
+As explained in the above section, the [0,256) Hue values of the HSV scale linearly map to ROYGBIV, so using the frequency-to-hue mapping values passed from the Frequency Mapping process, we are able to integrate audio (frequency) signal inputs with visual (Color) signal outputs.
+
+The state machine is structured as follows:
+	- IDLE state: FSM begins here, as an initial point before immediately transitioning to the COLOR state.
+	- COLOR state: determine the color to switch the LED light(s) to, by extracting the correct frequency value from the notes array. Switch to the RETAIN state.
+	- RETAIN state: In the case of the "chase" pattern, first determine which LED lights to update. Retain the color on the LED light(s) for the appropriate duration of time as specified in the timestamp[] array, unless the end of the song has been reached. Switch to the COLOR state to repeat the LED update process.
+
+
+## Server Side Database Structure
+
+We created two SQL tables to store the data, one table stores per useri information (the user table) and the other table stores per room information (the room table).
+
+The user table has the following fields:
+- **User** - Unique identifier for arduino board that needs to be entered on the webapp
+- **Room** - The room associated with this user, controlled by the web app
+- **Need update song?** - if true, the server will send information abotu the song to the arduino in its next query
+- **Need update play/pause state?** - if true, the server will send information abotu the play/pause state to the arduino in its next query
+
+The room table has the following fields:
+- **Room** - the room name
+- **Song** - the name of the song being played in the room
+- **Paused** - boolean flag of if the audio is currently paused or not
+- **Position** - the timestamp/position of the song in seconds
+
+The devserver maintains this data dependent on specific get/post requests from the server. See code below:
+
+```
+            if message[0] == 'user':
+                user, room = message[1:]
+                update_user_room(user, room)
+                return get_room_attr(room, 'song')
+
+            if message[0] == 'room':
+                room, song = message[1:]
+                set_room_attr(room, 'song', song)
+                set_user_room_attr(room, 'song_changed', 1)
+                return song
+
+            if request['values']['reason'] == 'pause':
+                set_room_attr(request['values']['room'], 'paused', 1)
+                set_user_room_attr(request['values']['room'], 'pause_changed', 1)
+
+            if request['values']['reason'] == 'play':
+                set_room_attr(request['values']['room'], 'paused', 0)
+                set_user_room_attr(request['values']['room'], 'pause_changed', 1)
+                set_room_attr(request['values']['room'], 'position', request['values']['position'])
+
+```
+
+Then based on the priority of updating about the song first and then the play/pause state, when the esp32 periodicially queries the dev server, we send an update back!
+
+For this week, we put pre-processed times for our sample songs onto the server as txt files. This is because it takes a couple seconds to process a song (~4s), and there is no good way to build this time in until we have a song queue (which is a week 4 goal).
+When queried by the ESP, it returns a string of the times and colors corresponding to that song, if and only if the song has just been selected in the webapp. 
+
+## Web App Requests
+
+On the web app, we set up a periodic asynchronous request to share the data relating to the room and song and timestamp interfacing with the above dev server communication app.
+
+## Server Integration
+
+The following demo satisfies both the server/Arduino integration deliverable and the pause/play feature deliverable. For two different songs, the LED strip produces light sequences that correspond to the song. The strip is controllable from the web app through the pause and play buttons.
+![Server Integration Demo](https://youtu.be/aiEZ53-an0Y)
+
+**Server/Arduino Integration**
+
+The ESP32 regularly sends get requests to comm.py on the dev server through the function `send_request`:
+```
+void send_request(char* username, char* request, char* response) {
+    memset(request, 0, sizeof(request));
+    strcpy(request, "GET http://608dev-2.net/sandbox/sc/team00/final/comm.py?reason=espquery&user=");
+    strcat(request, username);
+    strcat(request, " HTTP/1.1\r\n");
+    strcat(request, "Host: 608dev-2.net\r\n\r\n");
+    do_http_request("608dev-2.net", request, response, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);  
+  }
+```
+The username is an identifier unique to that ESP32 that is used for communication between the ESP32 and the web app to determine which song is being played in that user's room. The same username must be entered through the specified field on the web app.
+
+When beginning to play a song, the response will contain a comma-separated list of timestamps preceded by the number of timestamps in the list and a comma-separated list of frequencies preceded by the number of frequencies in the list. The `strtok` function is used to parse the list and place the timestamp and frequencies in their respective arrays. For the purposes of this demo of initial integration between the server and the Arduino code, only the timestamps are used for the lightshow with a pattern function created in Week 2.
+
+**Pause/Play Feature**
+
+The ESP32 runs through a state machine that cycles through the three states IDLE, PLAYING, and PAUSED:
+* IDLE: nothing is being played on the web app, no LED sequences are running on the strip connected to the ESP32.
+* PLAYING: the song is being played on the web app along with the corresponding LED sequence on the strip.
+* PAUSED: the song has been paused on the web app, causing the LED sequence to stop in place.
+
+Using the web app requests described above, the GET requests will indicate any updates through an indicator number as the first item of a comma-separated list. The meanings of the indicator numbers are given by the following constants:
+```
+const uint8_t NO_CHANGE = 0;
+const uint8_t PAUSE = 1;
+const uint8_t PLAY = 2;
+const uint8_t START = 3;
+```
+
+* A change of PAUSE will stop the LED sequence.
+* A change of PLAY will resume the LED sequence from the timestamp where the song was paused. This timestamp is given as the next item in the comma-separated list.
+* A change of START will begin a new LED sequence corresponding to a new song. This will be followed by the timestamp and frequency comma-separated list that is then parsed with the `strtok` function as described previously.
+
+These changes are used to switch between the states in the state machine.
+
+## Support For Multiple Users
+
+The following demo involves the playing of a short LED sequences through two different devices for two different users through a Zoom call. This showcases the integration between the database on the server with the web app and Arduino code. In the previous demo, we have gone into the details of how the LED sequence syncs to the characteristics of the song and how the pause/play feature works with the LED strip.
+Therefore, this demo is very short and only shows the ability to play the same LED pattern in sync with two devices. Because the demo is conducted through a Zoom call, there is some delay.
+
+![Multiple User Demo](https://youtu.be/GxD8v5DtT-w)
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
