@@ -177,20 +177,23 @@ def request_handler(request):
 
             # Providing data to the esp
             if request['values']['reason'] == 'espquery':
-                user = request['values']['user']
-                room = get_user_attr(user, 'room')
+                try:
+                    user = request['values']['user']
+                    room = get_user_attr(user, 'room')
 
-                if get_user_attr(user, 'song_changed') == 1:  # song changed
-                    set_user_attr(user, 'song_changed', 0)
-                    song, led_mode = get_room_attr(room, 'song').split('*')
+                    if get_user_attr(user, 'song_changed') == 1:  # song changed
+                        set_user_attr(user, 'song_changed', 0)
+                        song, led_mode = get_room_attr(room, 'song').split('*')
 
-                    filename = f'/var/jail/home/team00/final/' + song.replace(" ", "") + '.txt'
-                    with open(filename, 'r') as f:
-                        return '3,' + f.read().strip(' ') + ',' + str(led_mode)
+                        filename = f'/var/jail/home/team00/final/' + song.replace(" ", "") + '.txt'
+                        with open(filename, 'r') as f:
+                            return '3,' + f.read().strip(' ') + ',' + str(led_mode)
 
-                if get_user_attr(user, 'pause_changed') == 1:
-                    set_user_attr(user, 'pause_changed', 0)
-                    return '1' if get_room_attr(room, 'paused') == 1 else '2,' + get_room_attr(room, 'position')
+                    if get_user_attr(user, 'pause_changed') == 1:
+                        set_user_attr(user, 'pause_changed', 0)
+                        return '1' if get_room_attr(room, 'paused') == 1 else '2,' + get_room_attr(room, 'position')
+                except:
+                    pass
                 return '0'  # default nothing happened response
     finally:
         con.close()
