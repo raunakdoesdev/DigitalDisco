@@ -108,10 +108,10 @@ void loop() {
 
 void MAIN_PLAY_LIGHTSHOW(uint8_t modes) {
   if (modes == 0) {
-    WAVES(timestamps, 0); // slow
+    WAVES(timestamps, frequencies, 1); // fast
   }
   else if (modes == 1) {
-    WAVES(timestamps, 1); // fast
+    WAVES(timestamps, frequencies, 0); // slow
   }
   else if (modes == 2) {
     GRADIENTS(timestamps, heatmap_gp); // sun
@@ -120,10 +120,10 @@ void MAIN_PLAY_LIGHTSHOW(uint8_t modes) {
     GRADIENTS(timestamps, purple_gp); // moon
   }
   else if (modes == 4) {
-    SPARKLES(timestamps);
+    SPARKLES(timestamps, frequencies);
   }
   else if (modes == 5) {
-    PULSES(timestamps);
+    PULSES(timestamps, frequencies);
   }
 }
 
@@ -155,7 +155,7 @@ void GRADIENTS(double* timestamp, CRGBPalette16 palette) {
 }
 
 
-void PULSES(double* timestamp) {
+void PULSES(double* timestamp, int* frequencies) {
   uint8_t speed = beatsin8(100, 0, 255);
   FastLED.show();
   switch (state) {
@@ -191,7 +191,7 @@ void cycle() {
 }
 
 
-void WAVES(double* timestamp, uint8_t speedy) {
+void WAVES(double* timestamp, int* frequencies, uint8_t speedy) {
   uint8_t sinBeat; uint8_t sinBeat2; uint8_t sinBeat3;
   if (speedy == 0) { // slow
     sinBeat = beatsin8(2, 0, NUM_LEDS - 1, 0, 0);
@@ -229,7 +229,7 @@ void WAVES(double* timestamp, uint8_t speedy) {
   }
 }
 
-void SPARKLES(double* timestamp) {
+void SPARKLES(double* timestamp, int* frequencies) {
   CRGBPalette16 palette = heatmap_gp;  // define palette
   switch (state) {
     case IDLE:
@@ -237,8 +237,9 @@ void SPARKLES(double* timestamp) {
       start = millis();
       break;
     case COLOR:
-      //Switch on an LED at random, choosing a random color from the palette
-      leds[random8(0, NUM_LEDS - 1)] = ColorFromPalette(palette, random8(), 255, LINEARBLEND);
+      //Switch on an LED at random, with the current frequency
+      freq = frequencies[notes - 1];
+      leds[random8(0, NUM_LEDS - 1)] = CHSV(freq, 250, 127);
       state = RETAIN;
       break;
     case RETAIN:
