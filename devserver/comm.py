@@ -148,6 +148,7 @@ def request_handler(request):
                 room = message[1]
                 reset_queue(room)
                 set_room_attr(room, 'paused', 1)
+                set_user_attr(user, 'song_changed', 1)
                 set_user_room_attr(room, 'pause_changed', 1)
 
             return 'Success'
@@ -166,11 +167,14 @@ def request_handler(request):
             if request['values']['reason'] == 'pause':
                 set_room_attr(request['values']['room'], 'paused', 1)
                 set_user_room_attr(request['values']['room'], 'pause_changed', 1)
+                set_user_room_attr(request['values']['room'], 'song_changed', 1)
+
 
             if request['values']['reason'] == 'play':
                 set_room_attr(request['values']['room'], 'paused', 0)
                 set_user_room_attr(request['values']['room'], 'pause_changed', 1)
                 set_room_attr(request['values']['room'], 'position', request['values']['position'])
+                set_user_room_attr(request['values']['room'], 'song_changed', 1)
 
             if request['values']['reason'] == 'end':
                 reference = datetime.datetime.now() - datetime.timedelta(seconds=2)
