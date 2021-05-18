@@ -24,7 +24,7 @@ float last_freq = 0;
 int dot;
 int time_size;
 int freq_size;
-uint8_t palette_idx;
+uint8_t palette_idx = 0;
 CHSV endclr;
 CHSV midclr;
 double timestamps[5000];
@@ -103,7 +103,7 @@ void loop() {
     Serial.println("go!");
   }
 
-  MAIN_PLAY_LIGHTSHOW(1); // SUNMEE PASS IN THE MODES VALUE HERE
+  MAIN_PLAY_LIGHTSHOW(3); // SUNMEE PASS IN THE MODES VALUE HERE
 }
 
 void MAIN_PLAY_LIGHTSHOW(uint8_t modes) {
@@ -128,9 +128,8 @@ void MAIN_PLAY_LIGHTSHOW(uint8_t modes) {
 }
 
 void GRADIENTS(double* timestamp, CRGBPalette16 palette) {
-  uint8_t scale = 4;  // speed up gradient change
+  float scale = 5.0;  // speed up gradient change
   uint8_t num_leds = 50;
-
   switch (state) {
     case IDLE:
       state = COLOR;
@@ -141,15 +140,15 @@ void GRADIENTS(double* timestamp, CRGBPalette16 palette) {
       state = RETAIN;
       break;
     case RETAIN:
-      while (millis() - start < timestamp[notes] / scale) {
-        FastLED.show();
+      if (millis()- start > timestamp[notes] / scale){
+        notes++;
+        palette_idx++;
       }
-      notes = notes++;
-      palette_idx++;
+      if (notes > time_size) { // reset notes
+        notes = 4;
+      }
       state = COLOR;
-      if (notes > time_size * scale) { // reset notes
-        notes = 1;
-      }
+      FastLED.show();
       break;
   }
 }
@@ -230,7 +229,6 @@ void WAVES(double* timestamp, int* frequencies, uint8_t speedy) {
 }
 
 void SPARKLES(double* timestamp, int* frequencies) {
-  CRGBPalette16 palette = heatmap_gp;  // define palette
   switch (state) {
     case IDLE:
       state = COLOR;
@@ -247,7 +245,6 @@ void SPARKLES(double* timestamp, int* frequencies) {
         ;
       }
       notes = notes++;
-      palette_idx++;
       state = COLOR;
       if (notes > time_size) { // reset notes
         notes = 1;
