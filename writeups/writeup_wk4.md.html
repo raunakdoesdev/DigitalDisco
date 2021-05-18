@@ -18,23 +18,23 @@ DEMO:
 
 ## Multiple LED patterns with frequency/beat integration
 
-Last week, I implemented a basic FSM framework that allows the LEDs to be integrated with frequency and beat data. 
+Last week, we implemented a basic FSM framework that allows the LEDs to be integrated with frequency and beat data. 
 As a reminder,the state machine is structured as follows:
 	- **IDLE** state: FSM begins here, as an initial point before immediately transitioning to the COLOR state.
 	- **COLOR** state: determine the color to switch the LED light(s) to, by extracting the correct frequency value from the notes array. Switch to the RETAIN state.
 	- **RETAIN** state: In the case of the "chase" pattern, first determine which LED lights to update. Retain the color on the LED light(s) for the appropriate duration of time as specified in the timestamp[] array, unless the end of the song has been reached. Switch to the COLOR state to repeat the LED update process.
 
-From this fundamental FSM structure, I implemented four unique types of patterns that would adapt to the current song's beats AND/OR frequency:
+From this fundamental FSM structure, we implemented four unique types of patterns that would adapt to the current song's beats AND/OR frequency:
 * **WAVES**: This pattern sends "waves" of colors darting across the LED strip at constant speed; the effect is achievable by commanding certain LED lights (indices returned from a sine-wave function) to turn on, and then fade at a certain rate.
-		The colors shown correspond to the real-time frequency of the current note in the song. To clarify the colors and for better visual effect, I implemented the pattern to send two distinct waves (of the same color) with contrasting offsets, across a white background of LEDs. 
+		The colors shown correspond to the real-time frequency of the current note in the song. To clarify the colors and for better visual effect, we implemented the pattern to send two distinct waves (of the same color) with contrasting offsets, across a white background of LEDs. 
 		This pattern does not correlate with the beat changes of the song; if a wave is sent at every note change (or even at every few note changes), the lights would be darting too quickly back and forth across the LED for it to be visually pleasing.
 		Instead, the user would be able to specify if they want a "Fast Wave" or a "Slow Wave" pattern.
 * **GRADIENTS**: This pattern is similar to the Wave in that it sends a moving window of colors across the LED strip; but here, the window moves with a speed proportional to the song's speed.  
-		This effect is achievable by manipulating the a "Palette" functionality in FastLED. I specified a palette of colors to feed into the FSM, and upon every switch of notes, the LED would display a shifted subset of the palette; over time, this would appear as the gradient "moving" across the LED.
-		Since this pattern does not integrate the frequency data, I similarly gave the user the option to see a gradient of warmer colors ("Sun Gradient") or cooler colors ("Moon Gradient").
-* **SPARKLES**: This pattern uses both beat and frequency data. Upon each change of beat, it turns on a randomly selected LED light with a color corresponding to the current note's frequency. To achieve a continuous visual effect, I faded each turned-on LED by constant amounts at each loop, so that the LED strip as a whole has a natural sparkly look.
+		This effect is achievable by manipulating the a "Palette" functionality in FastLED. We specified a palette of colors to feed into the FSM, and upon every switch of notes, the LED would display a shifted subset of the palette; over time, this would appear as the gradient "moving" across the LED.
+		Since this pattern does not integrate the frequency data, We similarly gave the user the option to see a gradient of warmer colors ("Sun Gradient") or cooler colors ("Moon Gradient").
+* **SPARKLES**: This pattern uses both beat and frequency data. Upon each change of beat, it turns on a randomly selected LED light with a color corresponding to the current note's frequency. To achieve a continuous visual effect, We faded each turned-on LED by constant amounts at each loop, so that the LED strip as a whole has a natural sparkly look.
 * **PULSES**: This pattern also uses both beat and frequency data.  Upon each change of beat, it turns on all LED lights with a color corresponding to the current note's frequency. 
-		To achieve a continuous visual effect (i.e. make it look less like a series of discrete flashes), I used the "blend" functionality on the FastLED library, where a new color is not immediately "flashed" in replacement of the previous one, but rather blended with the preexisting color.
+		To achieve a continuous visual effect (i.e. make it look less like a series of discrete flashes), We used the "blend" functionality on the FastLED library, where a new color is not immediately "flashed" in replacement of the previous one, but rather blended with the preexisting color.
 		Between the timespan of two notes with different frequencies, the LEDs would cycle within a blended range of the two notes' corresponding colors, creating a smooth and continuous look. 
 	
 
