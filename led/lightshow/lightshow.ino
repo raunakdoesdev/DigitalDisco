@@ -48,11 +48,11 @@ const uint8_t RED = 4;
 uint8_t play_state;
 float start;
 uint8_t next;
-int notes;
-int time_size;
-int freq_size;
+uint16_t notes;
+uint16_t time_size;
+uint16_t freq_size;
 int timer;
-int led_mode;
+uint8_t led_mode;
 // -------------------------------------------------------------------------------
 
 
@@ -62,7 +62,7 @@ WiFiClient client2;
 
 const uint16_t RESPONSE_TIMEOUT = 6000;
 const uint16_t IN_BUFFER_SIZE = 500; //size of buffer to hold HTTP request
-const uint16_t OUT_BUFFER_SIZE = 1500; //size of buffer to hold HTTP response
+const uint16_t OUT_BUFFER_SIZE = 10000; //size of buffer to hold HTTP response
 char request_buffer[IN_BUFFER_SIZE];
 char response_buffer[OUT_BUFFER_SIZE];
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -138,26 +138,30 @@ void loop() {
     
     // sending request and processing ----------------------------------------------------------------------------
     send_request(USER, request_buffer, response_buffer);
-    char* current = strtok(response_buffer, ",");
+    char* current = strtok(response_buffer, ", ");
     int indicator = atoi(current);
+    Serial.println(indicator);
     if (indicator == START) {
-      current = strtok(NULL, ",");
+      current = strtok(NULL, ", ");
       led_mode = atoi(current);
-      current = strtok(NULL, ",");
+      Serial.println(led_mode);
+      current = strtok(NULL, ", ");
       time_size = atoi(current);
+      Serial.println(time_size);
+      current = strtok(NULL, ", ");
       for (int i = 0; i < time_size; i++) {
         timestamps[i] = 1000 * atof(current);
-        current = strtok(NULL, ",");
+        current = strtok(NULL, ", ");
       }
       // freq_size = atoi (current);
-      // current = strtok(NULL, ",");
+      // current = strtok(NULL, ", ");
       // for (int i = 0; i < freq_size; i++) {
       //   frequencies[i] = atoi(current);
-      //   current = strtok(NULL, ",");
+      //   current = strtok(NULL, ", ");
       // }
       song_done = false;
     } else if (indicator == PLAY) {
-      current = strtok(NULL, ",");
+      current = strtok(NULL, ", ");
       paused_point = 1000 * atof(current);
     }
     //------------------------------------------------------------------------------------------------------------
@@ -226,7 +230,6 @@ void loop() {
 
 void play_song(double* timestamp) {
   FastLED.show();
-  Serial.println("FLASHING THINGSSS!!!!!");
   switch (play_state) {
     case IDLE:
       play_state = BLUE;
@@ -279,7 +282,7 @@ void send_request(char* username, char* request, char* response) {
   do_http_request("608dev-2.net", request, response, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);  
 }
 
-void adjust_times(double* all_times, double* new_times, int* pos, double pause) {
+void adjust_times(double* all_times, double* new_times, uint16_t* pos, double pause) {
   for (int i = 0; i < time_size; i++) {
     new_times[i] = all_times[i] - pause;
     if (new_times[i] < 0) {
