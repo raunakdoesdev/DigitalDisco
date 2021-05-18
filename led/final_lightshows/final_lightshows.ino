@@ -146,6 +146,7 @@ void GRADIENTS(double* timestamp, CRGBPalette16 palette) {
       }
       if (notes > time_size) { // reset notes
         notes = 4;
+        start = millis();
       }
       state = COLOR;
       FastLED.show();
