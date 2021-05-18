@@ -98,7 +98,7 @@ def get_user_attr(user, attr, c=None):
     cur = con.cursor() if c is None else c
     create_user_table(cur)
     user_state = cur.execute('''SELECT * FROM users WHERE user == ?;''', (user,)).fetchall()
-    user_state = default_user if len(user_state) == 0 else list(user_state[0])
+    user_state = list(user_state[0])
     return user_state[user_attr_dict[attr]]
 
 
@@ -131,7 +131,14 @@ def request_handler(request):
 
             if message[0] == 'user':
                 user, room = message[1:]
+                try:
+                    if room == get_user_attr(user, 'room'):
+                        return 'Success'
+                except:
+                    pass
                 update_user_room(user, room)
+                set_user_attr(user, 'song_changed', 1)
+                set_user_attr(user, 'pause_changed', 1)
 
             if message[0] == 'room':
                 room, song, led_mode,times_and_freqs = message[1:]
@@ -140,6 +147,9 @@ def request_handler(request):
             if message[0] == 'reset':
                 room = message[1]
                 reset_queue(room)
+                set_room_attr(room, 'paused', 1)
+                set_user_attr(user, 'song_changed', 1)
+                set_user_room_attr(room, 'pause_changed', 1)
 
             return 'Success'
 
@@ -157,11 +167,14 @@ def request_handler(request):
             if request['values']['reason'] == 'pause':
                 set_room_attr(request['values']['room'], 'paused', 1)
                 set_user_room_attr(request['values']['room'], 'pause_changed', 1)
+                set_user_room_attr(request['values']['room'], 'song_changed', 1)
+
 
             if request['values']['reason'] == 'play':
                 set_room_attr(request['values']['room'], 'paused', 0)
                 set_user_room_attr(request['values']['room'], 'pause_changed', 1)
                 set_room_attr(request['values']['room'], 'position', request['values']['position'])
+                set_user_room_attr(request['values']['room'], 'song_changed', 1)
 
             if request['values']['reason'] == 'end':
                 reference = datetime.datetime.now() - datetime.timedelta(seconds=2)
