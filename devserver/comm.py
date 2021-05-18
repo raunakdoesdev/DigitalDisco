@@ -185,9 +185,9 @@ def request_handler(request):
                         set_user_attr(user, 'song_changed', 0)
                         song, led_mode,times_and_freqs = get_room_attr(room, 'song').split('*')
 
-                        filename = f'/var/jail/home/team00/final/' + song.replace(" ", "") + '.txt'
-                        with open(filename, 'r') as f:
-                            return '3,' + str(led_mode) + ',' + times_and_freqs#f.read().strip(' ')
+                        # filename = f'/var/jail/home/team00/final/' + song.replace(" ", "") + '.txt'
+                        # with open(filename, 'r') as f:
+                        return '3,' + str(led_mode) + ',' + times_and_freqs#f.read().strip(' ')
 
                     if get_user_attr(user, 'pause_changed') == 1:
                         set_user_attr(user, 'pause_changed', 0)
