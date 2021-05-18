@@ -131,7 +131,7 @@ void setup() {
 
 void loop() {
   if (state == PLAYING && song_done == false) {
-    play_song(timestamps);
+    play_song(used_times);
   }
   if (millis() - timer > QUERY_FREQ) {
     
