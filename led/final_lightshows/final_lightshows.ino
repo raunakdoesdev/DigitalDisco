@@ -102,12 +102,30 @@ void loop() {
     delay(1000);
     Serial.println("go!");
   }
-  WAVES(timestamps, 0);
-  //GRADIENTS(timestamps, purple_gp);
-  //SPARKLES(timestamps);
-  //PULSES(timestamps);
+
+  MAIN_PLAY_LIGHTSHOW(1); // SUNMEE PASS IN THE MODES VALUE HERE
 }
 
+void MAIN_PLAY_LIGHTSHOW(uint8_t modes) {
+  if (modes == 0) {
+    WAVES(timestamps, 0); // slow
+  }
+  else if (modes == 1) {
+    WAVES(timestamps, 1); // fast
+  }
+  else if (modes == 2) {
+    GRADIENTS(timestamps, heatmap_gp); // sun
+  }
+  else if (modes == 3) {
+    GRADIENTS(timestamps, purple_gp); // moon
+  }
+  else if (modes == 4) {
+    SPARKLES(timestamps);
+  }
+  else if (modes == 5) {
+    PULSES(timestamps);
+  }
+}
 
 void GRADIENTS(double* timestamp, CRGBPalette16 palette) {
   uint8_t scale = 4;  // speed up gradient change
@@ -213,7 +231,6 @@ void WAVES(double* timestamp, uint8_t speedy) {
 
 void SPARKLES(double* timestamp) {
   CRGBPalette16 palette = heatmap_gp;  // define palette
-
   switch (state) {
     case IDLE:
       state = COLOR;
