@@ -2,13 +2,34 @@
 
 # Deliverables: Wk 4
 
+### Queue Implementation
 
-## Queue
+The queue was implemented by augmenting the room database with an additional timestamp parameter. 
+When a user adds an event to the queue, it adds another “room” to the database table storing the information about the room. 
+To get the currently playing song, you just query the server for the oldest song in the queue.
 
+The problem quickly arose, however, that we would need to remove the old items from the queue when a song was finished. 
+This was easy enough, as we simply had to send a request to pop the oldest item out of the database when a song was finished. 
+The issue is that if multiple users are listening, then multiple songs are popped off of the end of the database as each client sends the same pop request. 
+To accommodate for this, we stored the timestamp of the last time a pop request was made and require a buffer of at least 3 seconds before pop requests. 
+This is implemented in the following code snippet:
 
+```python
+reference = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+with open('/var/jail/home/team00/final/pop_memory.txt', 'r') as f:
+    time = datetime.datetime.strptime(f.read(), '%Y-%m-%d %H:%M:%S.%f')
+
+    if time < reference:
+        pop_song(request['values']['room'])  # remove top song
+        set_user_room_attr(request['values']['room'], 'song_changed', 1)
+        with open('/var/jail/home/team00/final/pop_memory.txt', 'w') as f:
+            f.write(str(datetime.datetime.now()))
+```
 
 We also added the audio processing to the queue. This makes it painless to add new songs to the app---just upload them to the repo, paste the name and link into the app file, and they will show up, ready to play. 
-This is possible because of libraries like numpy and scipy that are optimized to handle large data matrices, which allow a whole song to be analyzed in about ~3-6 seconds. 
+This is possible because of libraries like numpy and scipy that are optimized to handle large data matrices. 
+Using these tools, a whole song to be analyzed in about ~3-6 seconds, and ideally, using the queue effectively, this occurs while one of the previous songs are playing. 
 Whenever the button is pressed to add a song to the queue, it runs the script to generate the beat and frequency information from the appropriate audio file, 
 and then sends this to the central server along with the other song info to be parsed and stored in the database. 
 The user sees the little loading symbol while the audio processes, and then receives visual confirmation that their song was successfully submitted to the queue. 
