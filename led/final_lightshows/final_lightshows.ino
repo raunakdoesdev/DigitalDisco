@@ -103,7 +103,7 @@ void loop() {
     Serial.println("go!");
   }
 
-  MAIN_PLAY_LIGHTSHOW(1); // SUNMEE PASS IN THE MODES VALUE HERE
+  MAIN_PLAY_LIGHTSHOW(4); // SUNMEE PASS IN THE MODES VALUE HERE
 }
 
 void MAIN_PLAY_LIGHTSHOW(uint8_t modes) {
@@ -230,7 +230,6 @@ void WAVES(double* timestamp, int* frequencies, uint8_t speedy) {
 }
 
 void SPARKLES(double* timestamp, int* frequencies) {
-  CRGBPalette16 palette = heatmap_gp;  // define palette
   switch (state) {
     case IDLE:
       state = COLOR;
@@ -247,7 +246,6 @@ void SPARKLES(double* timestamp, int* frequencies) {
         ;
       }
       notes = notes++;
-      palette_idx++;
       state = COLOR;
       if (notes > time_size) { // reset notes
         notes = 1;
