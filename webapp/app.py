@@ -15,8 +15,8 @@ songs = {
     'Never Gonna Give You Up': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Never%20Gonna%20Give%20You%20Up.mp3',
     'Piano Man': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Piano%20Man.mp3',
     'Stayin Alive': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Stayin%20Alive.mp3',
-    'Ode To A Butterfly': 'https://github.com/sauhaardac/DigitalDisco/raw/main/webapp/OdeToAButterfly.wav',
-    'I See Fire': 'https://github.com/sauhaardac/DigitalDisco/raw/main/webapp/ISeeFire.wav'
+    'Ode To A Butterfly': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Ode%20To%20A%20Butterfly.mp3',
+    'I See Fire': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/I%20See%20Fire.mp3'
 }
 st.title('Digital Disco')
 st.markdown('### App by Team 0')
