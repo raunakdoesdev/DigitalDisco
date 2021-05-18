@@ -1,0 +1,19 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/apidoc.css?">
+
+# Deliverables: Wk 4
+
+
+## Queue
+
+
+
+We also added the audio processing to the queue. This makes it painless to add new songs to the app---just upload them to the repo, paste the name and link into the app file, and they will show up, ready to play. 
+This is possible because of libraries like numpy and scipy that are optimized to handle large data matrices, which allow a whole song to be analyzed in about ~3-6 seconds. 
+Whenever the button is pressed to add a song to the queue, it runs the script to generate the beat and frequency information from the appropriate audio file, 
+and then sends this to the central server along with the other song info to be parsed and stored in the database. 
+The user sees the little loading symbol while the audio processes, and then receives visual confirmation that their song was successfully submitted to the queue. 
+
+DEMO: 
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>

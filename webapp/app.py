@@ -1,5 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
+from audio_analysis import colors_and_beats
 
 
 def send_request(message):
@@ -14,6 +15,8 @@ songs = {
     'Never Gonna Give You Up': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Never%20Gonna%20Give%20You%20Up.mp3',
     'Piano Man': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Piano%20Man.mp3',
     'Stayin Alive': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Stayin%20Alive.mp3',
+    'Ode To A Butterfly': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/Ode%20To%20A%20Butterfly.mp3',
+    'I See Fire': 'https://github.com/sauhaardac/DigitalDisco/raw/main/songs/I%20See%20Fire.mp3'
 }
 st.title('Digital Disco')
 st.markdown('### App by Team 0')
@@ -40,7 +43,9 @@ led_mode_dict = {
 
 led_mode = st.selectbox(label='LED Mode', options=list(led_mode_dict.keys()))
 if st.button('Add to Queue'):
-    send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]}')
+    filename = 'webapp/' + song_choice.replace(" ", "") + '.wav'
+    times_and_frequencies = colors_and_beats(filename)
+    send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]} | {times_and_frequencies}')
     st.write('Submitted!')
 
 if st.button('Reset Room and Queue'):
