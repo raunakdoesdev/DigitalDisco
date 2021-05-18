@@ -45,7 +45,7 @@ led_mode = st.selectbox(label='LED Mode', options=list(led_mode_dict.keys()))
 if st.button('Add to Queue'):
     filename = 'webapp/' + song_choice.replace(" ", "") + '.wav'
     times_and_frequencies = colors_and_beats(filename)
-    send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]} | {times_and_frequencies}')
+    send_request(f'room|{room}|{song_choice}|{led_mode_dict[led_mode]}|{times_and_frequencies}')
     st.write('Submitted!')
 
 if st.button('Reset Room and Queue'):
