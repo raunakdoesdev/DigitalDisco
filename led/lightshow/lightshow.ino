@@ -30,6 +30,7 @@ double used_times[1000];
 int frequencies[1000];
 
 bool song_done;
+double paused_point;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -157,7 +158,7 @@ void loop() {
       song_done = false;
     } else if (indicator == PLAY) {
       current = strtok(NULL, ",");
-      double paused_point = 1000 * atof(current);
+      paused_point = 1000 * atof(current);
     }
     //------------------------------------------------------------------------------------------------------------
 
@@ -171,7 +172,7 @@ void loop() {
           switch_time = millis();
           play_state = IDLE;
           next = IDLE;
-          adjust_times(timestamps, used_times, notes, 0.0);
+          adjust_times(timestamps, used_times, &notes, 0.0);
           state = PLAYING;
         }
         break;
@@ -196,13 +197,13 @@ void loop() {
           switch_time = millis();
           play_state = IDLE;
           next = IDLE;
-          adjust_times(timestamps, used_times, notes, 0.0);
+          adjust_times(timestamps, used_times, &notes, 0.0);
           state = PLAYING;
         }
         break;
       case PAUSED:
         if (indicator == PLAY) {
-          adjust_times(timestamps, used_times, notes, paused_point);
+          adjust_times(timestamps, used_times, &notes, paused_point);
           state = PLAYING;
         } else if (indicator == START) {
           FastLED.clear();
@@ -213,7 +214,7 @@ void loop() {
           switch_time = millis();
           play_state = IDLE;
           next = IDLE;
-          adjust_times(timestamps, used_times, notes, 0.0);
+          adjust_times(timestamps, used_times, &notes, 0.0);
           state = PLAYING;
         }
         break;
@@ -225,6 +226,7 @@ void loop() {
 
 void play_song(double* timestamp) {
   FastLED.show();
+  Serial.println("FLASHING THINGSSS!!!!!");
   switch (play_state) {
     case IDLE:
       play_state = BLUE;
@@ -280,7 +282,7 @@ void send_request(char* username, char* request, char* response) {
 void adjust_times(double* all_times, double* new_times, int* pos, double pause) {
   for (int i = 0; i < time_size; i++) {
     new_times[i] = all_times[i] - pause;
-    if (times[i] < 0) {
+    if (new_times[i] < 0) {
       *pos = i + 1;
     }
   }
