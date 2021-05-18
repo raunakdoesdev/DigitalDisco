@@ -147,6 +147,8 @@ def request_handler(request):
             if message[0] == 'reset':
                 room = message[1]
                 reset_queue(room)
+                set_room_attr(room, 'paused', 1)
+                set_user_room_attr(room, 'pause_changed', 1)
 
             return 'Success'
 
