@@ -278,9 +278,8 @@ void MAIN_PLAY_LIGHTSHOW(double* times, int* freqs, uint8_t modes) {
 }
 
 void GRADIENTS(double* timestamp, CRGBPalette16 palette) {
-  uint8_t scale = 4;  // speed up gradient change
+  float scale = 5.0;  // speed up gradient change
   uint8_t num_leds = 50;
-
   switch (play_state) {
     case IDLE:
       play_state = COLOR;
@@ -291,22 +290,21 @@ void GRADIENTS(double* timestamp, CRGBPalette16 palette) {
       play_state = RETAIN;
       break;
     case RETAIN:
-      while (millis() - start < timestamp[notes] / scale) {
-        FastLED.show();
+      if (millis()- start > timestamp[notes] / scale){
+        notes++;
+        palette_idx++;
       }
-      notes = notes++;
-      palette_idx++;
-      play_state = COLOR;
-      if (notes > time_size * scale) { // reset notes
+      if (notes > time_size) { // reset notes
         notes = 1;
-        next = IDLE;
         song_done = true;
-        FastLED.clear();
+        next = IDLE;
+        start = millis();
       }
+      play_state = COLOR;
+      FastLED.show();
       break;
   }
 }
-
 
 void PULSES(double* timestamp, int* frequencies) {
   uint8_t speed = beatsin8(100, 0, 255);
