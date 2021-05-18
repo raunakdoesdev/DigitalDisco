@@ -2,11 +2,13 @@
 
 # Deliverables: Wk 4
 
-### Queue Implementation
+## Queue Implementation
 
 The queue was implemented by augmenting the room database with an additional timestamp parameter. 
 When a user adds an event to the queue, it adds another “room” to the database table storing the information about the room. 
 To get the currently playing song, you just query the server for the oldest song in the queue.
+
+![Changing rooms video demo](https://youtu.be/YicCbGzw08g)
 
 The problem quickly arose, however, that we would need to remove the old items from the queue when a song was finished. 
 This was easy enough, as we simply had to send a request to pop the oldest item out of the database when a song was finished. 
@@ -34,8 +36,6 @@ Whenever the button is pressed to add a song to the queue, it runs the script to
 and then sends this to the central server along with the other song info to be parsed and stored in the database. 
 The user sees the little loading symbol while the audio processes, and then receives visual confirmation that their song was successfully submitted to the queue. 
 
-DEMO: 
-
 
 ## Multiple LED patterns with frequency/beat integration
 
@@ -58,6 +58,10 @@ From this fundamental FSM structure, we implemented four unique types of pattern
 		To achieve a continuous visual effect (i.e. make it look less like a series of discrete flashes), We used the "blend" functionality on the FastLED library, where a new color is not immediately "flashed" in replacement of the previous one, but rather blended with the preexisting color.
 		Between the timespan of two notes with different frequencies, the LEDs would cycle within a blended range of the two notes' corresponding colors, creating a smooth and continuous look. 
 	
+## INTEGRATED DEMO:
+
+![Integrated Demo video](https://youtu.be/ym5JPS9DFGw)
+
 
 <style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
 <!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
