@@ -26,6 +26,7 @@ const uint8_t PLAY = 2;
 const uint8_t START = 3;
 
 double timestamps[1000];
+double used_times[1000];
 int frequencies[1000];
 
 bool song_done;
@@ -164,13 +165,14 @@ void loop() {
     switch (state) {
       case IDLE:
         if (indicator == START) {
-          state = PLAYING;
           song_done = false;
           notes = 1;
           show_time = millis();
           switch_time = millis();
           play_state = IDLE;
           next = IDLE;
+          adjust_times(timestamps, used_times, notes, 0.0);
+          state = PLAYING;
         }
         break;
       case PLAYING:
@@ -194,12 +196,13 @@ void loop() {
           switch_time = millis();
           play_state = IDLE;
           next = IDLE;
+          adjust_times(timestamps, used_times, notes, 0.0);
           state = PLAYING;
         }
         break;
       case PAUSED:
         if (indicator == PLAY) {
-          adjust_times(timestamps, paused_point);
+          adjust_times(timestamps, used_times, notes, paused_point);
           state = PLAYING;
         } else if (indicator == START) {
           FastLED.clear();
@@ -210,6 +213,7 @@ void loop() {
           switch_time = millis();
           play_state = IDLE;
           next = IDLE;
+          adjust_times(timestamps, used_times, notes, 0.0);
           state = PLAYING;
         }
         break;
@@ -273,17 +277,11 @@ void send_request(char* username, char* request, char* response) {
   do_http_request("608dev-2.net", request, response, OUT_BUFFER_SIZE, RESPONSE_TIMEOUT, true);  
 }
 
-void adjust_times(double* times, double pause) {
-  int new_start;
+void adjust_times(double* all_times, double* new_times, int* pos, double pause) {
   for (int i = 0; i < time_size; i++) {
-    times[i] = times[i] - pause;
+    new_times[i] = all_times[i] - pause;
     if (times[i] < 0) {
-      new_start = i;
+      *pos = i + 1;
     }
-  }
-  new_start++;
-  time_size -= new_start;
-  for (int i = 0; i < time_size; i++) {
-    times[i] = times[i + new_start];
   }
 }
