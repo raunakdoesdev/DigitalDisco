@@ -17,6 +17,12 @@ Here is a demo of the full project:
 
 ## Documentation: 
 ### Non-kit parts: 
+Our only additional part was a length of individually addressable LEDs, which are compatible with the convenient FastLED library. 
+This makes it relatively simple to design interesting patterns which are communicated over I2C. 
+| Part Name/Description | Price | Item Number | Vendor URL |
+|-------|-------|-------|-----|
+| Arduino Controllable LED Strip | $10.88 | BTF-LIGHTING WS2812B RGB 5050SMD Individual Addressable 3.3FT 60(2x30)Pixels/m | [Amazon.com: BTF-LIGHTING WS2812B RGB 5050SMD Individual Addressable 16.4FT 60Pixels/m 300Pixels Flexible Black PCB Full Color LED Pixel Strip Dream Color IP30 Non-Waterproof Making LED Screen LED Wall Only DC5V: Home Improvement](https://www.amazon.com/dp/B01CDTED80/ref=as_li_ss_tl?pd_rd_i=B01CDTEJBG&pd_rd_w=PdPV2&pf_rd_p=45a72588-80f7-4414-9851-786f6c16d42b&pd_rd_wg=GEH20&pf_rd_r=BHD9QXXGHPXF3KXP5P0R&pd_rd_r=5730dbe5-46bd-4b1e-8a47-9450369807be&spLa=ZW5jcnlwdGVkUXVhbGlmaWVyPUFKT0s1UVpGRURGM1kmZW5jcnlwdGVkSWQ9QTA2MzYxNjAxVkdYMDFTUVVOVjM5JmVuY3J5cHRlZEFkSWQ9QTAxMzAyMTYxVlAzQjBYR1FZTVJDJndpZGdldE5hbWU9c3BfZGV0YWlsJmFjdGlvbj1jbGlja1JlZGlyZWN0JmRvTm90TG9nQ2xpY2s9dHJ1ZQ&linkCode=sl1&tag=howto045-20&linkId=82a9d1c9949062ec0c731ab510fb3299&language=en_US&th=1) |
+
 ### System Diagrams: 
 ![System Diagram](final_system_diagram.PNG)
 ![ESP32-side State Machine](final_esp32_fsm.PNG)
@@ -175,7 +181,9 @@ Furthermore, when there are things like strong step-wise ascents and descents, t
 
 Sources: https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html
 
-
+Originally, we also wrote an audio-detection algorithm which would be used to help sync the ESP32 with the audio when it started playing. However, we ended up figuring out that this was unnecessary. 
+This is in part because we realized we could successfully query the server very frequently from multiple devices (every ~100 ms for the ESP32s, every 250 for the webapp and javascript querying), which we were initially unsure of. 
+It was much more reliable to query like this, and accept the slight latency, than use the audio detection. 
 
 ### Music-Synced LED Patterns Documentation: `lightshow.ino`
 With the webapp, server-side communication, and signal processing working smoothly together, the LED's are the final visual piece to our Digital Disco party.  
