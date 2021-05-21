@@ -44,7 +44,7 @@ Above is a diagram of our simple wiring setup. The pins on the LED strip are con
 
 ### Central Server Documentation: `comm.py, queue.db, pop_memory.txt`
 
-The majority of the code in the central server is helper functions designed to streamline accessing the two main databases. Therefore, first we will outline the schema of the two SQL databases and example entry in each:
+The majority of the code in the central server consists of helper functions designed to streamline accessing the two main databases. Therefore, first we will outline the schema of the two SQL databases with an example entry in each:
 
 **Rooms Database**
 
@@ -87,7 +87,7 @@ In terms of get requests, there were two high level types:
 
 - Server side (javascript specifially) get requests, which would specify play/pause/song query/or song end actions.
   - The javascript query just returns the song, the pause updates the pause variable for all of the users in the room, the play does the same but undoes the paused change.
-- Esp32 queries - this queries for the server state. we have established a coding system for different types of messages where the first number in the message encodes some aspect of the state update.
+- Esp32 queries - this queries for the server state. We have established a coding system for different types of messages where the first number in the message encodes some aspect of the state update.
 
 ### Web App Documentation: `app.py, media.html`
 
@@ -217,7 +217,7 @@ Any skips are treated as resuming the song in a new place, and the timestamp arr
 
 Once a song is over, the ESP returns to the IDLE state until a new song is started.
 
-No state machine is used in the process of sending GET requests themselves. This is controlled by one timer that causes a GET request to be sent every 100 milliseconds.
+No state machine is used in the process of sending GET requests themselves. This is controlled by one timer that causes a GET request to be sent every 250 milliseconds.
 
 #### LED State Machine Implementation
 Fundamentally, we implemented a basic FSM framework that creates an lightshow with adaptive changes in hue and value, given the current song's frequency and beat data. 
