@@ -14,6 +14,8 @@ The lightshow will sync to the beat of the music, with LED patterns which also d
 
 Here is a demo of the full project: 
 
+![Digital Disco Final Demo](https://youtu.be/3l9HZrM4_F0)
+
 
 ## Documentation: 
 ### Non-kit parts: 
@@ -34,6 +36,9 @@ which is updated from the webapp via POST requests. The dev server then communic
 Zooming in from the overall system diagram, above is one state machine diagram that connects the state machine diagram for the ESP32 and the state machine diagram for the LEDs. Again, details on the states and functions of each respective state machine are found in the following sections of this writeup, 
 but this diagram illustrates the high-level modes of the ESP32 and the LEDs, and how the former informs the activation of the latter.
 
+![Wiring diagram](wiring_schematic.PNG)
+
+Above is a diagram of our simple wiring setup. The pins on the LED strip are connected to the appropriate pins on the ESP32, with IO pin 19 being used as the data pin.
 
 ## Functionality and Code Walk-through: 
 
@@ -194,8 +199,28 @@ It was much more reliable to query like this, and accept the slight latency, tha
 With the webapp, server-side communication, and signal processing working smoothly together, the LED's are the final visual piece to our Digital Disco party.  
 The LEDs, based on the information provided from the ESP32, play a light pattern that is both synced with the music and customizable on the webapp.
 
-#### State Machine Implementation
-Fundamentally, we implemented a basic FSM framework that create an lightshow with adaptive changes in hue and value, given the current song's frequency and beat data. 
+#### ESP32 State Machine Implementation
+Overall, the ESP32 state machine is how the system deals with start, pause, or play commands from the periodic GET requests to the server.
+
+The state machine is structured as follows: 
+* **IDLE**: nothing is being played on the web app, no LED sequences are running on the strip connected to the ESP32.
+* **PLAYING**: the song is being played on the web app along with the corresponding LED sequence on the strip.
+* **PAUSED**: the song has been paused on the web app, causing the LED sequence to stop in place.
+
+When a new song is started on the web app, the GET request sends a numerically encoded message of START. The ESP32 also receives a string with comma-separated timestamps and frequencies, which are parsed into double arrays using `strtok`. These arrays do not get replaced unless there is a song change.
+
+When the song is paused, the GET request sends a numerically encoded message of PAUSE and the sequence of color changes on the LED strip are paused.
+
+When a song is played again after a pause, the GET request sends a numerically encoded message of PLAY along with the timestamp at which the song is resumed. Then a function is invoked that will adjust the timestamp array with the given resuming timestamp as the new zero by subtracting from all values in the original timestamp array. The new array is used to control the LED strip afterwards. Provided that the song is not over and there is no pause, the LED strip will continue to flash to the music.
+
+Any skips are treated as resuming the song in a new place, and the timestamp array is adjusted as described previously.
+
+Once a song is over, the ESP returns to the IDLE state until a new song is started.
+
+No state machine is used in the process of sending GET requests themselves. This is controlled by one timer that causes a GET request to be sent every 100 milliseconds.
+
+#### LED State Machine Implementation
+Fundamentally, we implemented a basic FSM framework that creates an lightshow with adaptive changes in hue and value, given the current song's frequency and beat data. 
 
 For the manipulation of LED's, we used the FastLED library compatible with our ESP32. The FastLED library supports LED control with the HSV (Hue, Saturation, Value) scale.
 The [0,256) Hue values of the HSV scale linearly map to ROYGBIV; using the frequency-to-hue mapping values passed from the project's Frequency Mapping process, we were able to linearly match the audio (frequency) signal inputs with visual (Color) signal outputs. 
