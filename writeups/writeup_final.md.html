@@ -144,8 +144,8 @@ Finally—and this is on the Streamlit end again—we have the client side code 
 ### Music Processing Documentation: `audio_processing.py`, song files
 The use of the Streamlit app was also essential to being able to process audio in real-time, because it can run in the background while the music is playing without clogging up the server or running into the timeouts of an HTTP request. 
 
-The main relevant function from this module is `colors_and_beats(file)`, which takes in a wav file, and returns a string containing a formatted list of all the times associated with beats, and a frequency-color mapped integer for each window of time. 
-To find this information, e used two main techniques from signal processing: note onset detection, to find the beats within the song, and separate frequency analysis to find the dominant frequencies within these time periods. 
+The main relevant function from this module is `colors_and_beats()`, which takes in a wav file, and returns a string containing a formatted list of all the times associated with beats, and a frequency-color mapped integer for each window of time. 
+To find this information, we used two main techniques from signal processing: note onset detection, to find the beats within the song, and separate frequency analysis to find the dominant frequencies within these time periods. 
 
 #### Beat Detection
 The basic process for this beat detection algorithm is as follows: 
@@ -192,7 +192,7 @@ Furthermore, when there are things like strong step-wise ascents and descents, t
 Sources: https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html
 
 Originally, we also wrote an audio-detection algorithm which would be used to help sync the ESP32 with the audio when it started playing. However, we ended up figuring out that this was unnecessary. 
-This is in part because we realized we could successfully query the server very frequently from multiple devices (every ~100 ms for the ESP32s, every 250 for the webapp and javascript querying), which we were initially unsure of. 
+This is in part because we realized we could successfully query the server very frequently from multiple devices, every 250 ms from the ESP32s as well as the webapp, which we were initially unsure of. 
 It was much more reliable to query like this, and accept the slight latency, than use the audio detection. 
 
 ### Music-Synced LED Patterns Documentation: `lightshow.ino`
@@ -329,12 +329,12 @@ All weekly demos, organized by topic:
 WARNING: very high frequencies!! Please turn down your sound!! 
 ![Never Gonna Give You Up](demo_songs/nggyu_colors_superimposed.mp3)
 ![Stayin' Alive](demo_songs/stayin_alive_colors_superimposed.mp3)
-![Never Gonna Give You Up](demo_songs\nggyu_colors.png)
+![Never Gonna Give You Up](demo_songs/nggyu_colors.png)
 ![Piano Man](demo_songs/PianoMan_colors.png)
 
 
 ### Ultimately unused: 
-Audio detection (wk 1): (https://youtu.be/nwY2ylStbko)
+![Audio detection (wk 1)](https://youtu.be/nwY2ylStbko)
 
 <style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
 <!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
