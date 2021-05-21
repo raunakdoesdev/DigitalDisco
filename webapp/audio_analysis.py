@@ -2,7 +2,6 @@
 from scipy.signal import stft
 from scipy.io import wavfile
 import numpy as np
-import time
 def H(x):
     return (x+abs(x))/2
 
@@ -37,30 +36,9 @@ def find_peaks(x, t, threshold, min_spacing):
         cand = max(x)
     return sorted(output)
 
-
-def k_for_note(X, m_start, m_stop):
-    max_k = [k_at_time(X, m) for m in range(m_start+1, m_stop)]
-    freqs = dict()
-    for t, k in enumerate(max_k):
-        if k not in freqs:
-            freqs[k] = [1, t]
-        else:
-            freqs[k][0] += 1
-    max = [0,0,1000000] #k, f, t
-    for k in freqs:
-        f = freqs[k][0]
-        t = freqs[k][1]
-        if f > max[1]:
-            max = [k,f,t]
-        elif f == [1]:
-            if t < max[2]:
-                max = [k,f,t]
-    return max[0]
-
 # def plot_spectral_difference(file, window_size=2048, step_size=256):
 #     sampling_rate,samples = wav_read(file)
 #     f,t,X = stft(samples,sampling_rate,nperseg=window_size, noverlap=(window_size-step_size) )
-#     print('here')
 #     SD = spectral_difference(X)
 #     plt.plot(t,SD)
 #     plt.show()
@@ -128,22 +106,16 @@ def wav_write(samples, fs, fname):
 
 
 def beats(file, window_size=2048, step_size=512):
-    start_time = time.time()
     sampling_rate,samples = wav_read(file)
-    print(sampling_rate, samples.shape)
     f,t,X = stft(samples,sampling_rate,nperseg=window_size, noverlap=(window_size-step_size) )
-    print(time.time()-start_time)
     SD = spectral_difference(X)
     min_spacing = int(0.23*sampling_rate/step_size) #TODO must tune
-    print(min_spacing)
     threshold = 0.003 #TODO must tune 
-    print(time.time()-start_time)
     indices = find_peaks(SD, t, threshold, min_spacing)
     if indices[0] != 0:
         indices = [0] + indices
     indices.append(len(t)-1)
     times = np.take(t, indices)
-    print(time.time()-start_time)
     return times
 
 
@@ -250,26 +222,24 @@ def compute_chromagram(Y_LF):
 
 
 def colors_and_beats(file, window_size=2048, step_size=512):
-    start_time = time.time()
     fs,samples = wav_read(file)
-    # print(fs, samples.shape)
+    #calculate stft and spectral difference
     f,t,X = stft(samples,fs,nperseg=window_size, noverlap=(window_size-step_size) )
     SD = spectral_difference(X)
-    min_spacing = int(0.23*fs/step_size) #TODO must tune
-    threshold = 0.003 #TODO must tune 
-    # print(time.time()-start_time)
+    #find Times with peak finding
+    min_spacing = int(0.23*fs/step_size) 
+    threshold = 0.003 
     indices = find_peaks(SD, t, threshold, min_spacing)
     if indices[0] != 0:
         indices = [0] + indices
     indices.append(len(t)-1)
     times = np.take(t, indices)
-    # print(time.time()-start_time)
+
+    #find log-power spectrogram and dominant frequencies
     Y = np.abs(X)**2
     Y_LF, F_coef_pitch = compute_spec_log_freq(Y, fs, window_size)
-    chroma = compute_chromagram(Y_LF)
     max_k = np.argmax(Y_LF[0:95], axis=0)
-    # max_k = np.argmax(chroma, axis=0)
-    # print(Y_LF.shape, max_k.shape)
+
     #calculating max per note
     colors = np.zeros(len(indices)-1)
     resynth_fs = 8000
@@ -279,29 +249,28 @@ def colors_and_beats(file, window_size=2048, step_size=512):
         m_end = indices[i+1]
         temp = max_k[m_start:m_end]
         colors[i] = np.amax(temp)
+        #purpose: producing resynth frequencies wav file
         # start_sample = int(times[i]*resynth_fs)
         # end_sample = int(times[i+1]*resynth_fs)
         # # freq = f_pitch(colors[i]+60)
         # freq = f_pitch(colors[i])
         # for n in range(start_sample, end_sample):
         #     resynth_output[n] = (0.5*np.cos(2*np.pi*freq/resynth_fs*n))
-    # print(time.time()-start_time)
     # f = file[:-4] + '_colors.wav'
     # print(resynth_output.shape)
     # wav_write(resynth_output, resynth_fs, f)
+
     #evenly spread out across the color spectrum
     offset = np.amin(colors[:-1])
     diff = np.amax(colors)-offset
     colors_norm = np.clip((colors-offset)*255/diff, 0, 255)
     colors =colors_norm.astype(int)
     num_samples = len(colors)
-    # print(num_samples)
-    out_times = str(num_samples+1) + ','#str(len(times)) + ','
+    out_times = str(num_samples+1) + ','
     for t in times[:num_samples+1]:
         out_times += '{:.4f}'.format(t) + ','
-    out_colors = str(num_samples) + ','#str(len(colors)) + ','
+    out_colors = str(num_samples) + ','
     for c in colors[:num_samples]:
         out_colors += str(c) + ','
-    # print(time.time()-start_time)
     return out_times[:-1]+'\n' + out_colors[:-1] + '\n '
 
