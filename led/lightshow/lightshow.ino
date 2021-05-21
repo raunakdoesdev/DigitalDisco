@@ -6,7 +6,7 @@
 
 // fields to change if necessary -------------------------------------------------
 char USER[] = "sunchoi"; // change username here
-const int QUERY_FREQ = 100;
+const int QUERY_FREQ = 250;
 const char NETWORK[] = "MIT GUEST";
 const char PASSWORD[] = "";
 //--------------------------------------------------------------------------------
