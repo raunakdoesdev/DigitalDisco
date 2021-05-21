@@ -172,6 +172,89 @@ Furthermore, when there are things like strong step-wise ascents and descents, t
 
 Sources: https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html
 
+
+
+### Music-Synced LED Patterns Documentation: `lightshow.ino`
+With the webapp, server-side communication, and signal processing working smoothly together, the LED's are the final visual piece to our Digital Disco party.  
+The LEDs, based on the information provided from the ESP32, play a light pattern that is both synced with the music and customizable on the webapp.
+
+#### State Machine Implementation
+Fundamentally, we implemented a basic FSM framework that create an lightshow with adaptive changes in hue and value, given the current song's frequency and beat data. 
+
+For the manipulation of LED's, we used the FastLED library compatible with our ESP32. The FastLED library supports LED control with the HSV (Hue, Saturation, Value) scale.
+The [0,256) Hue values of the HSV scale linearly map to ROYGBIV; using the frequency-to-hue mapping values passed from the project's Frequency Mapping process, we were able to linearly match the audio (frequency) signal inputs with visual (Color) signal outputs. 
+Of course, there was room for creativity in which audio frequencies correspond to what ranges of colors; we could use the classic ROYGBIV scale, but also the FastLED library's Palette function to generate more unusual gradients. 
+As for integrating beats, our general approach was to change colors with every change of note (i.e. one "beat" change) in the song; however, there was additional flexibility in how many lights to change, where to change them, etc.
+
+The state machine is structured as follows:
+	- **IDLE** state: FSM begins here, as an initial point before immediately transitioning to the COLOR state.
+	- **COLOR** state: determine the color to switch the LED light(s) to, by extracting the correct frequency value from the notes array. Switch to the RETAIN state.
+	- **RETAIN** state: In the case of the "chase" pattern, first determine which LED lights to update. Retain the color on the LED light(s) for the appropriate duration of time as specified in the timestamp[] array, unless the end of the song has been reached. Switch to the COLOR state to repeat the LED update process.
+
+#### LED Patterns Design
+From this FSM backbone, we developed four unique types of patterns that would adapt to the current song's beats AND/OR frequency.
+Below are details on the design decisions involved in recreating each pattern, and some corresponding key code components.
+
+* **WAVES**: This pattern sends "waves" of colors darting across the LED strip at constant speed; the effect is achievable by commanding certain LED lights (indices returned from a sine-wave function) to turn on, and then fade at a certain rate.
+		The colors shown correspond to the real-time frequency of the current note in the song. To clarify the colors and for better visual effect, we implemented the pattern to send two distinct waves (of the same color) with contrasting offsets, across a white background of LEDs. 
+		This pattern does not correlate with the beat changes of the song; if a wave is sent at every note change (or even at every few note changes), the lights would be darting too quickly back and forth across the LED for it to be visually pleasing.
+		Instead, the user would be able to specify if they want a "Fast Wave" or a "Slow Wave" pattern.
+		The critical function to designing this pattern was FastLED's beatsin8, which generates numbers along a sinusoidal graph; these numbers correspond to the indices of the LEDs to turn on.
+		Below shows the generation of three waves in the "Slow Waves" pattern, each at speed 2 and with ranges from the beginning and end of the LED strip, with three different offsets:
+		~~~~~~~~~~~~~~~~~~~~~~~~~~
+		if (speedy == 0) { // slow
+			sinBeat = beatsin8(2, 0, NUM_LEDS - 1, 0, 0);
+			sinBeat2 = beatsin8(2, 0, NUM_LEDS - 1, 0, 128);
+			sinBeat3 = beatsin8(2, 0, NUM_LEDS - 1, 0, 255);
+		}
+		~~~~~~~~~~~~~~~~~~~~~~~~~~
+		
+* **GRADIENTS**: This pattern is similar to the Wave in that it sends a moving window of colors across the LED strip; but here, the window moves with a speed proportional to the song's speed.  
+		This effect is achievable by manipulating the a "Palette" functionality in FastLED. We specified a palette of colors to feed into the FSM, and upon every switch of notes, the LED would display a shifted subset of the palette; over time, this would appear as the gradient "moving" across the LED.
+		Since this pattern does not integrate the frequency data, We similarly gave the user the option to see a gradient of warmer colors ("Sun Gradient") or cooler colors ("Moon Gradient").
+		The critical functions to designing this pattern were fill_palette() and DEFINE_GRADIENT_PALETTE(). I defined a gradient palette for each gradient palette, and used fill_palette() to sample from that color scheme with the change of beat. Here is an example, with the Sun Gradient:
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		DEFINE_GRADIENT_PALETTE( heatmap_gp ) {
+		  0,     0,  0,  0,   //black
+		  224,   255, 255,  0,  //bright yellow
+		  128,   255,  0,  0,   //red
+		  255,   255, 255, 255
+		}; //full white
+		....
+		CRGBPalette16 palette = heatmap_gp;
+		fill_palette(leds, num_leds, palette_idx, 255 / num_leds, palette, 255, LINEARBLEND); // palette_idx++ in the RETAIN state of FSM
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* **SPARKLES**: This pattern uses both beat and frequency data. Upon each change of beat, it turns on a randomly selected LED light with a color corresponding to the current note's frequency. To achieve a continuous visual effect, We faded each turned-on LED by constant amounts at each loop, so that the LED strip as a whole has a natural sparkly look.
+		The critical functions to designing this pattern were the standard random generator and fadeToBlackBy(); by switching a random LED light on, a cool sparkle would be generated, and it would fade like natural light.
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		leds[random8(0, NUM_LEDS - 1)] = CHSV(freq, 250, 127);
+		fadeToBlackBy(leds, NUM_LEDS, 1); 		// Fade all LEDs down by 1 in brightness each time this is called
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* **PULSES**: This pattern also uses both beat and frequency data.  Upon each change of beat, it turns on all LED lights with a color corresponding to the current note's frequency. 
+		To achieve a continuous visual effect (i.e. make it look less like a series of discrete flashes), We used the "blend" functionality on the FastLED library, where a new color is not immediately "flashed" in replacement of the previous one, but rather blended with the preexisting color.
+		Between the timespan of two notes with different frequencies, the LEDs would cycle within a blended range of the two notes' corresponding colors, creating a smooth and continuous look. 
+		The critical functions to designing this pattern were FastLED's blend(), and my helper function cycle() with fill_gradient_RGB() called at every call of the FSM.
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		endclr = blend(CHSV(last_freq, 250, 127), CHSV(freq, 250, 127), speed);  // end color
+		midclr = blend(CHSV(freq, 250, 127), CHSV(last_freq, 250, 127), speed);  // middle color
+		...
+		cycle(); // call during RETAIN FSM state
+		...
+		void cycle() { // alternate between the end and middle color to create a smoothly transitioning/alternating pulse.
+		  fill_gradient_RGB(leds, 0, endclr, NUM_LEDS / 2, midclr);  
+		  fill_gradient_RGB(leds, NUM_LEDS / 2 + 1, midclr, NUM_LEDS, endclr);
+		}
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	
+
+
+
+
+
+
+
 ## Appendix
 All weekly demos, organized by topic:  
 
