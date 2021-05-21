@@ -1,0 +1,224 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/apidoc.css?">
+
+**Digital Disco**
+*Team 0: Sun Mee Choi, Raunak Chowdhuri, Karen Chung, Alyssa Solomon* 
+
+
+The pandemic has put a pause on parties. Zoom parties can fill part of this need, but are lacking in atmosphere and experience. At a real party, you would blast pumped up music in a matching energetic environment, but this isn’t the case online. We aim to solve this pressing problem with our project, “Digital Disco.”
+
+The Digital Disco is a smart lighting system that you can easily install in your room to take your virtual parties to the next level. Paired with our handy web application, your lights will auto-magically sync to the music you play on your computer speakers, which in turn will be synced with the music your friends play. 
+
+The lightshow will sync to the beat of the music, with LED patterns which also depend on the frequencies in the song and the user's color preferences, chosen in the webapp. The ESP32 will consistently query a web server to gather information on the current lightshow and song status. 
+
+
+
+Here is a demo of the full project: 
+
+
+## Documentation: 
+### Non-kit parts: 
+### System Diagrams: 
+### Design Challenges and Decisions: 
+
+
+## Functionality and Code Walk-through: 
+
+### Central Server Documentation: `comm.py, queue.db, pop_memory.txt`
+
+The majority of the code in the central server is helper functions designed to streamline accessing the two main databases. Therefore, first we will outline the schema of the two SQL databases and example entry in each:
+
+**Rooms Database**
+
+| Room (text)  | Song (text)                   | Paused (int) | Position (text) | Time (timestamp)                   |
+| ------ | ----------------------- | ------ | -------- | ----------------------- |
+| shared | Never Gonna Give You Up | 0      | 14.36    | datetime.datetime.now() |
+
+We’ve defined the following helper functions to interact with this database:
+
+- **create_room_table** - initialize the room database if it doesn’t exist
+- **get_room_attr** - get a specific field from the active (most recent) row corresponding to the provided row - basically a convenient getter method for the rooms database
+- **set_room_attr** - set the value of the column in the room table for a specific room
+- **pop_song** - remove the most recent row in the rooms table for a specific room (corresponds to the currently active song on the queue for a room)
+- **add_to_queue** - add a new row the rooms database with the given room and song
+- **reset_queue** - remove all rows corresponding with a specific room id 
+
+**User Database**
+
+| User (text)   | Room (text)   | Pause Changed (int) | Song Changed (int) |
+| ------- | ------ | ------------- | ------------ |
+| raunakc | shared | 1             | 1            |
+
+- **set_user_room_attr** - set the column value for all users who are in a specific room
+- **get_user_attr** - get a column value for a specific user id
+- **set_user_attr** - set the column value for a specific user id
+
+
+
+Now, with the helper functions out of the way, we can get into the main functionality of the central server. First, let’s discuss the post request handling:
+
+- To simplify things we sent all of the post request information in a single string called message delimited by the “|” character. Then we had three different possible post types. One was a requested queue reset, in which case we would reset the queue in a specific room, set the state for the room to be paused, update the “song_changed” as there should be no song playing as well as the “pause_changed” for all users in the room.
+
+- Otherwise the request could be to add a song to the queue, in which case we would add a song to the queue, appending the led mode and times_and_freqs to the song name in our databse delimited by the `*` character.
+
+- Finally, if the request was user specific, generally registering a specific user to a specific room, then we added the user to the specific room and set the user attribute of song changed and pause changed to needing an update so that the esp32 would receive an update immediately. 
+
+
+
+In terms of get requests, there were two high level types:
+
+- Server side (javascript specifially) get requests, which would specify play/pause/song query/or song end actions.
+  - The javascript query just returns the song, the pause updates the pause variable for all of the users in the room, the play does the same but undoes the paused change.
+- Esp32 queries - this queries for the server state. we have established a coding system for different types of messages where the first number in the message encodes some aspect of the state update.
+
+### Web App Documentation: `app.py, media.html`
+
+We used the Streamlit library to streamline the development of the webapp. This tool made it possible to do much of the front end work in Python using function calls like: `username = st.text_input(label='User Name')` to get the username from the user on the website.
+
+Unfortunately, due to the need for realtime audio syncing–a feature which streamlit does not natively support yet–we could not rely solely on the streamlit infrastructure for making all of the web app.
+
+For this reason, we include an HTML/javascript portion of the app as well, which is loaded up in the python script, modified, and then added dynamically to the webpage with the following code:
+
+```python
+st.write('### Media Player:')
+with open('webapp/media.html', 'r') as f:
+    audio = components.html(f.read().replace('MOTION_NAME_HERE', room)
+                            .replace('ROOMGOESHERE', room),
+                            height=50)
+```
+
+The motion and room name is automatically replaced based on values entered by the user so that the html/javascript portion of the app syncs with the correct room at all times.
+
+
+
+The HTML Portion of the `media.html` file was fairly simple:
+
+```html
+<p id='buttons'>
+    <button id='tostart'>Reset</button>
+    <button id='pause'>Pause</button>
+    <button id='forward'>Play</button>
+    <button id='skip'>Skip 30 Ahead</button>
+</p>
+<audio controls id="player1" style="width:100%" autoplay>
+    <source id="audiosource" src="SONGPATHHERE" type="audio/mpeg"/>
+</audio>
+```
+
+It’s just four buttons and an audio player which is hidden (height = 0). The intelligence comes from the Javascript code which uses the Webtiming Sync library from https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js to automatically sync the position in the audio.
+
+
+
+We handle the button presses as follows:
+
+- **Pause:** Update the song velocity to 0 and send a request to the server with the room id sharing the fact that the song was paused so that the ESP32 can receive that information and pause itself.
+- **Reset:** Update the song position and velocity to 0 (stop and go to the beginning of the song) and send a pause request to the dev server so that it can tell the ESP32 to stop in its tracks!
+- **Play:** Update the velocity to 1 (play at normal speed) and send a request to the dev server with the current position in the song and a notice that it has started playing.
+- **Skip:** Skip forward 60 seconds in the position of the song and send a new play request to the server with the new position within the song.
+
+Next, we have a series of requests that is scheduled to be sent out every 250 milliseconds.- 
+
+- Basically, it queries the server to see what song is supposed to be playing in the current room. If the song is different from the song that is currently assigned to the audio source, then the audio src is replaced and the audio is reset to position and velocity 0. Additionally, if we find that the song duration exceeds the duration of the audio, then we send an audio end request to the server.
+
+Finally—and this is on the Streamlit end again—we have the client side code for managing the queue. In general it is pretty simple, as the devserver manages the queue, but when the user presses the add to queue button, then we extract the colors and beats from the specific audio.
+
+
+### Music Processing Documentation: `audio_processing.py`, song files
+The use of the Streamlit app was also essential to being able to process audio in real-time, because it can run in the background while the music is playing without clogging up the server or running into the timeouts of an HTTP request. 
+
+The main relevant function from this module is `colors_and_beats(file)`, which takes in a wav file, and returns a string containing a formatted list of all the times associated with beats, and a frequency-color mapped integer for each window of time. 
+To find this information, e used two main techniques from signal processing: note onset detection, to find the beats within the song, and separate frequency analysis to find the dominant frequencies within these time periods. 
+
+#### Beat Detection
+The basic process for this beat detection algorithm is as follows: 
+- compute the STFT of the song using scipy
+- compute the spectral difference 
+- find peaks in the spectral difference and return the corresponding times
+
+The spectral difference is a function defined as follows: 
+$$SD(n) = \sum_{k=0}^{N-1} \{H(|X_n[k]| - |X_{n-1}[k]|)\}^2$$
+where: $H(x) = \frac{x+|x|}{2}$. 
+
+This spectral difference function, as taught in 6.003, is a a measure of how much the frequency content is changing between frames. 
+When there is a beat or a note change, we expect there to be a significant change in the frequency content. 
+This is especially true for percussive attacks because they have frequency content in a very wide band of frequencies right at the onset of the note, which then drops off quickly. 
+
+The function H(x) serves to focus on these onsets because it is positive when $X_n[k] >X_{n-1}[k]$ and 0 otherwise. Therefore, it selects for times where there is a sharp increase in the total amount spectral content. 
+
+The peak finding algorithm works by iteratively selecting the maximum spectral difference sample above a certain threshold and then zeroing out its neighbors (to limit how close together the beats can fall). This process is repeated until no samples remain amove the threshold. 
+Those measures for minimum spacing and threshold have to be experimentally derived, but it appears that they can be tuned so that one set of values works across a wide range of songs. 
+In this case, we designed that beats should not be any closer than about 250 bpm, and the threshold was determined from plots of the spectral difference.
+
+#### Frequency Analysis 
+We used log-power spectrogram data to find the most dominant frequency within each time-segment corresponding to a beat.
+These frequency bands are centered on the semi tones of the diatonic scale system, using A=440Hz. 
+By binning into these frequency bands, the goal is to have a more perceptually-motivated picture of where the dominant frequency in the music is. 
+The code to produce this binned-spectrogram was taken from the source below. 
+
+One caveat we noticed is that in music with a lot of percussive elements (ex: claps, high hat, etc), there is a lot of high frequency power that don't necessarily correspond to melodic or harmonic cpmponents. 
+To help aid in ignoring these, we cut off the very highest frequency components, above about a C7. 
+
+We also played around with using a chromagram, which further condenses the frequency components into the 12 semi-tones in a single octave. 
+However, this had a lot of repeated dominant frequencies even when the actual melodic and harmonic content varied, so we chose to stick with the log-power spectrogram.
+
+The process was as follows:
+- Compute the log-power spectrogram
+- Find the maximum frequency band for each window
+- Find the most frequent max frequency over all the windows within a beat's time-segment
+- Map the resulting frequency bands to range over the whole hue spectrum [0,255] (FastLED uses this range for easier computation.)
+Thus, the exact hue mapping depends on the range of the song, so that it can show the greatest possible color difference between adjacent notes in a song. 
+
+Because of the binning process, the resynthesized frequencies sounded a bit out of tune and we fully acknowledge that. However, we still think they do a decent job of capturing what is going on. 
+Furthermore, when there are things like strong step-wise ascents and descents, they do usually reflect that, which should tranlate well to the LED patterns. 
+
+Sources: https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html
+
+## Appendix
+All weekly demos, organized by topic:  
+
+### Integrated examples:
+![Server + ESP + lights + webapp demo (wk 3--sketchy)](https://youtu.be/aiEZ53-an0Y)
+![Multiple users (wk 3)](https://youtu.be/GxD8v5DtT-w)
+![Full demo (wk 4)](https://youtu.be/ym5JPS9DFGw)
+
+
+
+
+
+### ESP and LEDs:
+![Basic LED control (wk 2)](https://youtu.be/xGVIh3mCBFg)
+![Light Show with Integrated Time Data (wk 2)](https://youtu.be/xGVIh3mCBFg)
+![Integrate Frequency Data into LED Patterns](https://www.youtube.com/watch?v=hWuwHcWFKDU)
+
+### Webapp and server comms:
+![Three-way sync (wk 1)](https://www.youtube.com/watch?v=sueh-2Q8Fh8)
+![Media-synced web app rooms (wk 1)](https://www.youtube.com/watch?v=aS6W9owh_R8)
+![Changing rooms (wk 4)](https://youtu.be/YicCbGzw08g)
+![Removing from queue (wk 4)](https://www.youtube.com/watch?v=czAikrdrauI)
+
+### Signal processing:
+##### Beat Detection (wk 2): 
+![Stayin' Alive](demo_songs/stayin_alive_superimposed.mp3)
+![Never Gonna Give You Up](demo_songs/nggyu_superimposed.mp3)
+![Stitches](demo_songs/stitches_superimposed.mp3)
+![Piano Man](demo_songs/pianoman_superimposed.mp3)
+##### Frequency analysis (wk 3): 
+WARNING: very high frequencies!! Please turn down your sound!! 
+![Never Gonna Give You Up](demo_songs/nggyu_colors_superimposed.mp3)
+![Stayin' Alive](demo_songs/stayin_alive_colors_superimposed.mp3)
+![Never Gonna Give You Up](demo_songs\nggyu_colors.png)
+![Piano Man](demo_songs/PianoMan_colors.png)
+
+
+### Ultimately unused: 
+Audio detection (wk 1): (https://youtu.be/nwY2ylStbko)
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
+
+First, the user enters the webapp, and inputs their username. This is used to link them uniquely to their individual ESP32 device. 
+They select one of the available rooms from a drop down list, to accommodate listening by themselves, or with different subset groups of their friends at any given time. 
+Then, they pick a song from the list, pick an LED pattern, and add it to the queue. The various LED patterns are based on the frequency of the song's notes, and the user's color preferences. 
+The song is analyzed in real time to produce a lightshow that syncs to the beat of the music. 
+The ESP32 consistently queries a web server to gather information pertaining to the lighting sequence it should play when the music starts, and the play/pause status of the music at any given moment. 
+
+The user can also choose from different rooms, 
