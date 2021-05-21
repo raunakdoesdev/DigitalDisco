@@ -19,6 +19,7 @@ Here is a demo of the full project:
 ### Non-kit parts: 
 ### System Diagrams: 
 ![System Diagram](final_system_diagram.PNG)
+
 Above is the state diagram for our overall project. Note the communication between the major components: the dev server (with the databases), the webapp, the ESP32, and the LED. 
 The "Functionality and Code Walk-through" section of this writeup will detail such operations, but as a high-level overview, the dev server stores information about the current users and rooms active in the Digital Disco, 
 which is updated from the webapp via POST requests. The dev server then communicates with the ESP32 (which regularly queries the server) to send it the relevant information needed to process synchronous, colorful, and fun patterns onto the LED!
